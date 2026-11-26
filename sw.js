@@ -1,12 +1,13 @@
-const CACHE_NAME = 'muslim-day-offline-v2';
+const CACHE_NAME = 'muslim-day-offline-v3';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './prayer-times.js',
+  './namaz-data.js',
   './app.js',
   './manifest.json',
-  './icon.svg',
+  './icon.png',
   './audio/durood_reminder.mp3',
   './audio/istighfar_reminder.mp3'
 ];

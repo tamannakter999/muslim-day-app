@@ -1,493 +1,307 @@
-// Muslim Day Offline Mobile App Logic (PWA + Capacitor Android)
+// Muslim Day v3 — Ultra-Fast, Lightweight, Offline-First Mobile App
 (() => {
   const {
-    BD_DISTRICTS,
-    calculatePrayerTimes,
-    toBanglaDigits,
-    formatTimeShort,
-    getHijriDate,
-    getGregorianDate
+    BD_DIVISIONS, BD_DISTRICTS, calculatePrayerTimes,
+    gregorianToHijri, getHijriDateString, getGregorianDate,
+    toBanglaDigits, formatTimeShort
   } = window.PrayerCalc;
 
-  // Register Offline Service Worker
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
 
-  // Translations
-  const I18N = {
-    bn: {
-      appTitle: 'মুসলিম ডে',
-      nextWaqt: 'পরবর্তী ওয়াক্ত',
-      sehriLabel: 'সাহরীর শেষ সময়',
-      iftarLabel: 'ইফতারের সময়',
-      sehriSub: 'ফজরের ৩ মিনিট আগে',
-      iftarSub: 'মাগরিবের ওয়াক্ত',
-      prayerTimesTitle: 'আজকের নামাজের সময়সূচী',
-      dailyZikrTitle: 'আজকের দরূদ ও ইস্তিগফার',
-      reminderBtn: 'রিমাইন্ডার ↗',
-      dailyIstighfarMeaning: 'আমি মহান আল্লাহর কাছে ক্ষমা প্রার্থনা করছি এবং তাঁর দিকেই ফিরে আসছি।',
-      reset: 'রিসেট',
-      todayTotal: 'আজকের মোট তসবিহ',
-      reminderSettings: 'দরূদ ও ইস্তিগফার রিমাইন্ডার',
-      duroodRemTitle: 'দরূদ শরীফ রিমাইন্ডার',
-      duroodRemDesc: 'ভয়েস বলবে: "দুরুদ পড়ুন" (অফলাইনেও কাজ করবে)',
-      istighfarRemTitle: 'ইস্তেগফার রিমাইন্ডার',
-      istighfarRemDesc: 'ভয়েস বলবে: "নিজের পাপের জন্য ক্ষমা চান"',
-      intervalTitle: 'রিমাইন্ডার বিরতি',
-      intervalDesc: 'কত সময় পর পর রিমাইন্ডার আসবে',
-      collectionTitle: 'দরূদ ও ইস্তিগফার সমূহ',
-      settingsTitle: 'অ্যাপ সেটিংস',
-      gpsSetting: 'অটো লোকেশন (GPS)',
-      gpsDesc: 'ডাটা অন থাকলে অটোমেটিক আপনার লোকেশন নেবে',
-      districtSetting: 'জেলা / শহর (ম্যানুয়াল)',
-      districtDesc: 'GPS বন্ধ থাকলে এই জেলার সময় দেখাবে',
-      madhabSetting: 'আসর নামাজের মাযহাব',
-      madhabDesc: 'বাংলাদেশে সাধারণত হানাফী অনুসরণ করা হয়',
-      langSetting: 'ভাষা (Language)',
-      darkModeSetting: 'ডার্ক মোড (Dark Mode)',
-      darkModeDesc: 'রাতের বেলা চোখের আরামের জন্য',
-      navHome: 'হোম',
-      navTasbih: 'তসবিহ',
-      navReminders: 'রিমাইন্ডার',
-      navSettings: 'সেটিংস',
-      hanafi: 'হানাফী',
-      standard: 'শাফেয়ী',
-      on: 'চালু',
-      off: 'বন্ধ',
-      soundOn: 'সাউন্ড চালু',
-      soundOff: 'সাউন্ড বন্ধ',
-      targetPrefix: 'লক্ষ্য: ',
-      unlimited: 'অসীম',
-      currentWaqtTag: 'চলমান ওয়াক্ত',
-      prayers: {
-        fajr: 'ফজর',
-        sunrise: 'সূর্যোদয়',
-        dhuhr: 'যোহর',
-        asr: 'আসর',
-        maghrib: 'মাগরিব',
-        isha: 'এশা'
-      }
-    },
-    en: {
-      appTitle: 'Muslim Day',
-      nextWaqt: 'Next Prayer',
-      sehriLabel: 'Sehri Ends',
-      iftarLabel: 'Iftar Time',
-      sehriSub: '3 min before Fajr',
-      iftarSub: 'At Maghrib time',
-      prayerTimesTitle: "Today's Prayer Times",
-      dailyZikrTitle: 'Daily Durood & Istighfar',
-      reminderBtn: 'Reminders ↗',
-      dailyIstighfarMeaning: 'I seek forgiveness from Allah the Almighty and repent to Him.',
-      reset: 'Reset',
-      todayTotal: "Today's Total Tasbih",
-      reminderSettings: 'Durood & Istighfar Reminders',
-      duroodRemTitle: 'Durood Sharif Reminder',
-      duroodRemDesc: 'Voice says: "দুরুদ পড়ুন" (Works offline)',
-      istighfarRemTitle: 'Istighfar Reminder',
-      istighfarRemDesc: 'Voice says: "নিজের পাপের জন্য ক্ষমা চান"',
-      intervalTitle: 'Reminder Interval',
-      intervalDesc: 'How often you receive reminders',
-      collectionTitle: 'Durood & Istighfar Collection',
-      settingsTitle: 'App Settings',
-      gpsSetting: 'Auto Location (GPS)',
-      gpsDesc: 'Automatically updates location when online',
-      districtSetting: 'District / City (Manual)',
-      districtDesc: 'Used when GPS is unavailable',
-      madhabSetting: 'Asr Madhab',
-      madhabDesc: 'Hanafi is standard in Bangladesh',
-      langSetting: 'Language',
-      darkModeSetting: 'Dark Mode',
-      darkModeDesc: 'Comfortable viewing at night',
-      navHome: 'Home',
-      navTasbih: 'Tasbih',
-      navReminders: 'Reminders',
-      navSettings: 'Settings',
-      hanafi: 'Hanafi',
-      standard: 'Standard',
-      on: 'Active',
-      off: 'Off',
-      soundOn: 'Sound On',
-      soundOff: 'Sound Off',
-      targetPrefix: 'Target: ',
-      unlimited: '∞',
-      currentWaqtTag: 'Current',
-      prayers: {
-        fajr: 'Fajr',
-        sunrise: 'Sunrise',
-        dhuhr: 'Dhuhr',
-        asr: 'Asr',
-        maghrib: 'Maghrib',
-        isha: 'Isha'
-      }
-    }
-  };
-
-  const TASBIH_PRESETS = [
-    {
-      id: 'subhanallah',
-      labelBn: 'সুবহানাল্লাহ',
-      labelEn: 'SubhanAllah',
-      arabic: 'سُبْحَانَ اللَّهِ',
-      meaningBn: 'সুবহানাল্লাহ — আল্লাহ পবিত্র',
-      meaningEn: 'Glory be to Allah',
-      defaultTarget: 33
-    },
-    {
-      id: 'alhamdulillah',
-      labelBn: 'আলহামদুলিল্লাহ',
-      labelEn: 'Alhamdulillah',
-      arabic: 'الْحَمْدُ لِلَّهِ',
-      meaningBn: 'আলহামদুলিল্লাহ — সকল প্রশংসা আল্লাহর',
-      meaningEn: 'All praise is due to Allah',
-      defaultTarget: 33
-    },
-    {
-      id: 'allahuakbar',
-      labelBn: 'আল্লাহু আকবার',
-      labelEn: 'Allahu Akbar',
-      arabic: 'اللَّهُ أَكْبَرُ',
-      meaningBn: 'আল্লাহু আকবার — আল্লাহ সর্বশ্রেষ্ঠ',
-      meaningEn: 'Allah is the Greatest',
-      defaultTarget: 34
-    },
-    {
-      id: 'astaghfirullah',
-      labelBn: 'আস্তাগফিরুল্লাহ',
-      labelEn: 'Astaghfirullah',
-      arabic: 'أَسْتَغْفِرُ اللَّهَ',
-      meaningBn: 'আস্তাগফিরুল্লাহ — আমি আল্লাহর কাছে ক্ষমা চাই',
-      meaningEn: 'I seek forgiveness from Allah',
-      defaultTarget: 100
-    },
-    {
-      id: 'durood',
-      labelBn: 'দরূদ শরীফ',
-      labelEn: 'Durood Sharif',
-      arabic: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ',
-      meaningBn: 'আল্লাহুম্মা সাল্লি আলা মুহাম্মাদ',
-      meaningEn: 'O Allah, send blessings upon Muhammad (ﷺ)',
-      defaultTarget: 100
-    },
-    {
-      id: 'kalima',
-      labelBn: 'লা ইলাহা ইল্লাল্লাহ',
-      labelEn: 'La ilaha illallah',
-      arabic: 'لَا إِلَهَ إِلَّا اللَّهُ',
-      meaningBn: 'আল্লাহ ছাড়া কোনো সত্য মাবুদ নেই',
-      meaningEn: 'There is no deity worthy of worship except Allah',
-      defaultTarget: 100
-    }
+  const DEFAULT_TASBIHS = [
+    { id: 'subhanallah', label: 'সুবহানাল্লাহ', arabic: 'سُبْحَانَ اللَّهِ', meaning: 'আল্লাহ পবিত্র', target: 33 },
+    { id: 'alhamdulillah', label: 'আলহামদুলিল্লাহ', arabic: 'الْحَمْدُ لِلَّهِ', meaning: 'সকল প্রশংসা আল্লাহর', target: 33 },
+    { id: 'allahuakbar', label: 'আল্লাহু আকবার', arabic: 'اللَّهُ أَكْبَرُ', meaning: 'আল্লাহ সর্বশ্রেষ্ঠ', target: 34 },
+    { id: 'astaghfirullah', label: 'আস্তাগফিরুল্লাহ', arabic: 'أَسْتَغْفِرُ اللَّهَ', meaning: 'আমি আল্লাহর কাছে ক্ষমা চাই', target: 100 },
+    { id: 'durood', label: 'দরূদ শরীফ', arabic: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ', meaning: 'আল্লাহুম্মা সাল্লি আলা মুহাম্মাদ', target: 100 },
+    { id: 'kalima', label: 'লা ইলাহা ইল্লাল্লাহ', arabic: 'لَا إِلَهَ إِلَّا اللَّهُ', meaning: 'আল্লাহ ছাড়া কোনো মাবুদ নেই', target: 100 }
   ];
 
-  const DUROOD_ISTIGHFAR_LIST = [
-    {
-      type: 'durood',
-      tagBn: 'দরূদ শরীফ',
-      tagEn: 'Durood',
-      arabic: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ',
-      pronunBn: 'উচ্চারণ: আল্লাহুম্মা সাল্লি আলা মুহাম্মাদিওঁ ওয়া আলা আলি মুহাম্মাদ।',
-      meaningBn: 'অর্থ: হে আল্লাহ! আপনি মুহাম্মাদ (ﷺ) এবং তাঁর পরিবারবর্গের ওপর রহমত বর্ষণ করুন।',
-      meaningEn: 'O Allah, send prayers upon Muhammad and upon the family of Muhammad.'
-    },
-    {
-      type: 'istighfar',
-      tagBn: 'ইস্তিগফার',
-      tagEn: 'Istighfar',
-      arabic: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ',
-      pronunBn: 'উচ্চারণ: আস্তাগফিরুল্লাহাল আজীমাল্লাযী লা ইলাহা ইল্লা হুয়াল হাইয়্যুল কাইয়্যুমু ওয়া আতুবু ইলাইহ।',
-      meaningBn: 'অর্থ: আমি মহান আল্লাহর কাছে ক্ষমা চাই, যিনি ছাড়া কোনো মাবুদ নেই, তিনি চিরঞ্জীব ও সর্বসত্তার ধারক, এবং তাঁর দিকেই ফিরে আসি।',
-      meaningEn: 'I seek the forgiveness of Allah the Mighty, whom there is none worthy of worship except Him, the Living, the Eternal, and I repent to Him.'
-    },
-    {
-      type: 'istighfar',
-      tagBn: 'সংক্ষিপ্ত ইস্তিগফার',
-      tagEn: 'Short Istighfar',
-      arabic: 'رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ',
-      pronunBn: 'উচ্চারণ: রাব্বিগফিরলী ওয়া তুব আলাইয়্যা ইন্নাকা আনতাত তাওয়াবুর রাহীম।',
-      meaningBn: 'অর্থ: হে আমার রব! আমাকে ক্ষমা করুন এবং আমার তাওবা কবুল করুন। নিশ্চয়ই আপনি তাওবা কবুলকারী ও পরম দয়ালু।',
-      meaningEn: 'My Lord, forgive me and accept my repentance. Indeed, You are the Accepting of repentance, the Merciful.'
-    }
-  ];
+  const now0 = new Date();
+  const DAY_KEY = now0.toISOString().slice(0, 10);
+  const MONTH_KEY = DAY_KEY.slice(0, 7);
+  const YEAR_KEY = DAY_KEY.slice(0, 4);
 
-  // Persisted State
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const saved = JSON.parse(localStorage.getItem('muslim_day_state_v2') || '{}');
-
+  const saved = JSON.parse(localStorage.getItem('muslim_day_v3') || '{}');
   const state = {
+    divisionId: saved.divisionId || 'dhaka',
     districtId: saved.districtId || 'dhaka',
     useGps: !!saved.useGps,
     gpsLat: saved.gpsLat || null,
     gpsLng: saved.gpsLng || null,
     gpsCity: saved.gpsCity || null,
+    hijriAdjust: saved.hijriAdjust !== undefined ? Number(saved.hijriAdjust) : -1,
     madhab: saved.madhab || 'hanafi',
     lang: saved.lang || 'bn',
-    darkMode: !!saved.darkMode,
-    tasbihPresetId: saved.tasbihPresetId || 'subhanallah',
-    tasbihCount: saved.tasbihCount || 0,
-    tasbihTarget: saved.tasbihTarget !== undefined ? saved.tasbihTarget : 33,
+    darkMode: saved.darkMode !== undefined ? !!saved.darkMode : true,
+
+    // Tasbih
+    tasbihList: Array.isArray(saved.tasbihList) && saved.tasbihList.length ? saved.tasbihList : DEFAULT_TASBIHS,
+    activeTasbihId: saved.activeTasbihId || 'subhanallah',
+    tasbihCounts: saved.tasbihCounts || {}, // current session count per tasbihId
     tasbihSound: saved.tasbihSound !== undefined ? saved.tasbihSound : true,
-    dailyDate: saved.dailyDate === todayKey ? todayKey : todayKey,
-    dailyTotal: saved.dailyDate === todayKey ? (saved.dailyTotal || 0) : 0,
-    duroodReminder: saved.duroodReminder !== undefined ? saved.duroodReminder : true,
-    istighfarReminder: saved.istighfarReminder !== undefined ? saved.istighfarReminder : true,
-    reminderInterval: saved.reminderInterval || 30
+    // Stats: { [tasbihId]: { dayKey, day, monthKey, month, yearKey, year } }
+    tasbihStats: saved.tasbihStats || {},
+
+    // Reminders
+    duroodOn: saved.duroodOn !== undefined ? saved.duroodOn : true,
+    duroodMin: Number(saved.duroodMin) || 15,
+    istighfarOn: saved.istighfarOn !== undefined ? saved.istighfarOn : true,
+    istighfarMin: Number(saved.istighfarMin) || 20,
+    quiet1On: saved.quiet1On !== undefined ? saved.quiet1On : true,
+    quiet1Start: saved.quiet1Start || '22:00',
+    quiet1End: saved.quiet1End || '07:00',
+    quiet2On: !!saved.quiet2On,
+    quiet2Start: saved.quiet2Start || '10:00',
+    quiet2End: saved.quiet2End || '17:00'
   };
 
+  let savePending = false;
   function saveState() {
-    localStorage.setItem('muslim_day_state_v2', JSON.stringify(state));
+    if (savePending) return;
+    savePending = true;
+    setTimeout(() => {
+      localStorage.setItem('muslim_day_v3', JSON.stringify(state));
+      savePending = false;
+    }, 150);
   }
 
-  // Loud Voice Playback Engine (uses bundled offline MP3s + Web Audio Gain boost)
+  const fmtNum = n => (state.lang === 'bn' ? toBanglaDigits(n) : String(n));
+
+  // Audio Engine (reused context for zero-lag taps)
   let audioCtx = null;
-  function getAudioCtx() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+  function getCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
 
-  function playTone(freq = 520, duration = 0.05, type = 'sine', volume = 0.08) {
+  function playClick() {
+    if (!state.tasbihSound) return;
     try {
-      const ctx = getAudioCtx();
+      const ctx = getCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(volume, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + duration);
+      osc.frequency.value = 540;
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.035);
     } catch (_) {}
   }
 
-  function playChime() {
-    playTone(587.33, 0.18, 'sine', 0.1);
-    setTimeout(() => playTone(880, 0.25, 'sine', 0.1), 160);
+  function playCompleteChime() {
+    if (!state.tasbihSound) return;
+    try {
+      const ctx = getCtx();
+      [587.3, 880].forEach((f, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = f;
+        const t = ctx.currentTime + idx * 0.14;
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t + 0.22);
+      });
+    } catch (_) {}
   }
 
-  // Play offline Bangla male voice clip with loudness boost (1.8x)
   function playVoiceClip(type) {
     const src = type === 'durood' ? './audio/durood_reminder.mp3' : './audio/istighfar_reminder.mp3';
     try {
       const audio = new Audio(src);
       audio.volume = 1.0;
-      const ctx = getAudioCtx();
+      const ctx = getCtx();
       const source = ctx.createMediaElementSource(audio);
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 1.85; // Loud & clear voice boost
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      audio.play().catch(() => {
-        // Fallback if Web Audio routing is restricted
-        const fallback = new Audio(src);
-        fallback.volume = 1.0;
-        fallback.play().catch(() => {});
-      });
+      const gain = ctx.createGain();
+      gain.gain.value = 1.9;
+      source.connect(gain); gain.connect(ctx.destination);
+      audio.play().catch(() => { const f = new Audio(src); f.play().catch(() => {}); });
     } catch (_) {
-      const fallback = new Audio(src);
-      fallback.volume = 1.0;
-      fallback.play().catch(() => {});
+      const f = new Audio(src); f.play().catch(() => {});
     }
-  }
-
-  // Format number based on lang
-  function fmtNum(n) {
-    return state.lang === 'bn' ? toBanglaDigits(n) : String(n);
   }
 
   // Toast
   let toastTimer = null;
   function showToast(title, body) {
-    const toast = document.getElementById('toast');
+    const el = document.getElementById('toast');
     document.getElementById('toastTitle').textContent = title;
     document.getElementById('toastBody').textContent = body;
-    toast.classList.add('show');
+    el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 4500);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
   }
 
-  // Tabs
-  function switchTab(tabName) {
+  // Navigation
+  function switchTab(name) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    const panel = document.getElementById(`tab-${tabName}`);
-    const navBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
-    if (panel) panel.classList.add('active');
-    if (navBtn) navBtn.classList.add('active');
+    document.getElementById(`tab-${name}`)?.classList.add('active');
+    document.querySelector(`.nav-item[data-tab="${name}"]`)?.classList.add('active');
   }
 
-  // GPS Location Tracking (works on Android Capacitor & Mobile Browser)
-  async function detectGpsLocation(silent = false) {
-    const statusEl = document.getElementById('gpsStatusText');
-    if (!silent && statusEl) {
-      statusEl.textContent = state.lang === 'bn' ? 'লোকেশন খোঁজা হচ্ছে...' : 'Detecting location...';
+  // Location Helpers
+  function getActiveCoords() {
+    if (state.useGps && state.gpsLat !== null && state.gpsLng !== null) {
+      return { lat: state.gpsLat, lng: state.gpsLng, label: state.gpsCity || 'GPS লোকেশন' };
     }
+    const d = BD_DISTRICTS.find(x => x.id === state.districtId) || BD_DISTRICTS[0];
+    return { lat: d.lat, lng: d.lng, label: state.lang === 'bn' ? d.nameBn : d.nameEn };
+  }
 
-    const onSuccess = async (lat, lng) => {
+  async function detectGps(silent = false) {
+    const st = document.getElementById('gpsStatusText');
+    if (!silent && st) st.textContent = 'লোকেশন খোঁজা হচ্ছে...';
+
+    const onOk = async (lat, lng) => {
       state.useGps = true;
       state.gpsLat = lat;
       state.gpsLng = lng;
-      state.gpsCity = state.lang === 'bn' ? 'আমার লোকেশন (GPS)' : 'My Location (GPS)';
-
-      // If online, try reverse geocoding for city name
+      state.gpsCity = 'GPS লোকেশন';
       if (navigator.onLine) {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${state.lang}`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const city =
-              data.address?.city ||
-              data.address?.town ||
-              data.address?.state_district ||
-              data.address?.county;
-            if (city) state.gpsCity = city;
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${state.lang}`);
+          if (r.ok) {
+            const j = await r.json();
+            const c = j.address?.suburb || j.address?.town || j.address?.city || j.address?.state_district;
+            if (c) state.gpsCity = c;
           }
         } catch (_) {}
       }
-
       saveState();
       updatePrayerTimes();
-      if (statusEl) {
-        statusEl.textContent =
-          state.lang === 'bn'
-            ? `সক্রিয়: ${state.gpsCity} (${lat.toFixed(2)}, ${lng.toFixed(2)})`
-            : `Active: ${state.gpsCity} (${lat.toFixed(2)}, ${lng.toFixed(2)})`;
-      }
-      if (!silent) {
-        showToast(
-          state.lang === 'bn' ? '📍 লোকেশন আপডেট হয়েছে' : '📍 Location Updated',
-          state.gpsCity
-        );
-      }
+      if (st) st.textContent = `সক্রিয়: ${state.gpsCity}`;
+      if (!silent) showToast('📍 লোকেশন আপডেট', state.gpsCity);
     };
 
-    const onError = () => {
-      if (!silent && statusEl) {
-        statusEl.textContent =
-          state.lang === 'bn'
-            ? 'GPS পাওয়া যায়নি — ম্যানুয়াল জেলা ব্যবহৃত হচ্ছে'
-            : 'GPS unavailable — using manual district';
-      }
-    };
+    const onErr = () => { if (!silent && st) st.textContent = 'GPS পাওয়া যায়নি — ম্যানুয়াল জেলা চালু আছে'; };
 
-    // Prefer Capacitor Geolocation plugin when running as Android APK
     if (window.Capacitor?.Plugins?.Geolocation) {
       try {
-        const perm = await window.Capacitor.Plugins.Geolocation.requestPermissions();
-        if (perm.location === 'granted' || perm.coarseLocation === 'granted') {
-          const pos = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 10000
-          });
-          onSuccess(pos.coords.latitude, pos.coords.longitude);
-          return;
+        const p = await window.Capacitor.Plugins.Geolocation.requestPermissions();
+        if (p.location === 'granted' || p.coarseLocation === 'granted') {
+          const pos = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+          return onOk(pos.coords.latitude, pos.coords.longitude);
         }
       } catch (_) {}
     }
-
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        pos => onSuccess(pos.coords.latitude, pos.coords.longitude),
-        onError,
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
-      );
-    } else {
-      onError();
-    }
+      navigator.geolocation.getCurrentPosition(p => onOk(p.coords.latitude, p.coords.longitude), onErr, { timeout: 10000 });
+    } else onErr();
   }
 
-  // Render District Dropdown
-  function renderDistrictOptions() {
-    const sel = document.getElementById('districtSelect');
-    sel.innerHTML = '';
-    BD_DISTRICTS.forEach(d => {
-      const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.textContent = state.lang === 'bn' ? d.nameBn : d.nameEn;
-      if (d.id === state.districtId) opt.selected = true;
-      sel.appendChild(opt);
+  function renderDivisionDistricts() {
+    const divSel = document.getElementById('divisionSelect');
+    const distSel = document.getElementById('districtSelect');
+    divSel.innerHTML = '';
+    Object.entries(BD_DIVISIONS).forEach(([id, obj]) => {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = state.lang === 'bn' ? obj.bn : obj.en;
+      if (id === state.divisionId) o.selected = true;
+      divSel.appendChild(o);
+    });
+
+    distSel.innerHTML = '';
+    const list = BD_DISTRICTS.filter(d => d.div === state.divisionId);
+    list.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d.id; o.textContent = state.lang === 'bn' ? d.nameBn : d.nameEn;
+      if (d.id === state.districtId) o.selected = true;
+      distSel.appendChild(o);
     });
   }
 
-  function getActiveCoords() {
-    if (state.useGps && state.gpsLat !== null && state.gpsLng !== null) {
-      return {
-        lat: state.gpsLat,
-        lng: state.gpsLng,
-        label: state.gpsCity || (state.lang === 'bn' ? 'GPS লোকেশন' : 'GPS Location')
-      };
-    }
-    const district = BD_DISTRICTS.find(d => d.id === state.districtId) || BD_DISTRICTS[0];
-    return {
-      lat: district.lat,
-      lng: district.lng,
-      label: state.lang === 'bn' ? district.nameBn : district.nameEn
-    };
-  }
-
-  // Render Prayer Times & Countdown
+  // Prayer Times, Forbidden Times, Ishraq/Chasht & Special Islamic Days
   let currentTimes = null;
-
   function updatePrayerTimes() {
     const now = new Date();
     const loc = getActiveCoords();
-    const t = I18N[state.lang];
-    const tzOffset = -now.getTimezoneOffset() / 60;
+    const tz = -now.getTimezoneOffset() / 60;
 
     document.getElementById('currentDistrictLabel').textContent = loc.label;
-    document.getElementById('hijriDate').textContent = getHijriDate(now, state.lang);
+    document.getElementById('hijriDate').textContent = getHijriDateString(now, state.lang, state.hijriAdjust);
     document.getElementById('gregorianDate').textContent = getGregorianDate(now, state.lang);
-    document.getElementById('madhabBadge').textContent =
-      state.madhab === 'hanafi' ? t.hanafi : t.standard;
+    document.getElementById('madhabBadge').textContent = state.madhab === 'hanafi' ? 'হানাফী' : 'শাফেয়ী';
 
-    currentTimes = calculatePrayerTimes(now, loc.lat, loc.lng, state.madhab, tzOffset);
+    // Special Day / Nafal Fast Auto-Detector
+    const hijri = gregorianToHijri(now, state.hijriAdjust);
+    const dow = now.getDay(); // 1=Mon, 4=Thu
+    const alerts = [];
+    if ([13, 14, 15].includes(hijri.day)) alerts.push(`🌙 আজ আইয়ামে বীজের রোজার দিন (${fmtNum(hijri.day)} তারিখ)`);
+    if (dow === 1 || dow === 4) alerts.push(`📅 আজ ${dow === 1 ? 'সোমবার' : 'বৃহস্পতিবার'} — সুন্নাহ নফল রোজার দিন`);
+    if (hijri.month === 8 && hijri.day === 14) alerts.push('✨ আজ দিবাগত রাত শবে বরাত (১৫ শাবান)');
+    if (hijri.month === 9 && hijri.day >= 21 && hijri.day % 2 === 1) alerts.push('✨ রমজানের বিজোড় রাত — শবে কদর তালাশ করুন');
 
+    const banner = document.getElementById('specialDayBanner');
+    if (alerts.length) {
+      banner.style.display = 'block';
+      document.getElementById('specialDayText').textContent = alerts.join(' • ');
+    } else {
+      banner.style.display = 'none';
+    }
+
+    currentTimes = calculatePrayerTimes(now, loc.lat, loc.lng, state.madhab, tz);
     document.getElementById('sehriTime').textContent = formatTimeShort(currentTimes.sehri, state.lang);
     document.getElementById('iftarTime').textContent = formatTimeShort(currentTimes.iftar, state.lang);
-    document.getElementById('sehriSub').textContent = t.sehriSub;
-    document.getElementById('iftarSub').textContent = t.iftarSub;
 
     const schedule = [
-      { key: 'fajr', icon: '🌌', time: currentTimes.fajr, isPrayer: true },
-      { key: 'sunrise', icon: '🌅', time: currentTimes.sunrise, isPrayer: false },
-      { key: 'dhuhr', icon: '☀️', time: currentTimes.dhuhr, isPrayer: true },
-      { key: 'asr', icon: '🌤️', time: currentTimes.asr, isPrayer: true },
-      { key: 'maghrib', icon: '🌇', time: currentTimes.maghrib, isPrayer: true },
-      { key: 'isha', icon: '🌙', time: currentTimes.isha, isPrayer: true }
+      { key: 'fajr', name: 'ফজর', icon: '🌌', time: currentTimes.fajr, p: true },
+      { key: 'sunrise', name: 'সূর্যোদয়', icon: '🌅', time: currentTimes.sunrise, p: false },
+      { key: 'dhuhr', name: 'যোহর', icon: '☀️', time: currentTimes.dhuhr, p: true },
+      { key: 'asr', name: 'আসর', icon: '🌤️', time: currentTimes.asr, p: true },
+      { key: 'maghrib', name: 'মাগরিব', icon: '🌇', time: currentTimes.maghrib, p: true },
+      { key: 'isha', name: 'এশা', icon: '🌙', time: currentTimes.isha, p: true }
     ];
 
     let activeKey = 'isha';
-    for (let i = 0; i < schedule.length; i++) {
-      if (now >= schedule[i].time) activeKey = schedule[i].key;
-    }
+    schedule.forEach(s => { if (now >= s.time) activeKey = s.key; });
 
-    const listEl = document.getElementById('prayerList');
-    listEl.innerHTML = '';
-    schedule.forEach(item => {
-      const row = document.createElement('div');
-      const isCurrent = item.isPrayer && item.key === activeKey;
-      row.className = `prayer-item ${isCurrent ? 'active-waqt' : ''} ${!item.isPrayer ? 'sunrise-row' : ''}`;
-      row.innerHTML = `
+    document.getElementById('prayerList').innerHTML = schedule.map(item => `
+      <div class="prayer-item ${item.p && item.key === activeKey ? 'active-waqt' : ''}">
         <div class="prayer-left">
-          <span class="prayer-icon">${item.icon}</span>
+          <span>${item.icon}</span>
           <div>
-            <div class="prayer-name">${t.prayers[item.key]}</div>
-            ${isCurrent ? `<div class="prayer-sub">${t.currentWaqtTag}</div>` : ''}
+            <div class="prayer-name">${item.name}</div>
+            ${item.p && item.key === activeKey ? '<div class="prayer-sub">চলমান ওয়াক্ত</div>' : ''}
           </div>
         </div>
         <div class="prayer-time">${formatTimeShort(item.time, state.lang)}</div>
-      `;
-      listEl.appendChild(row);
-    });
+      </div>
+    `).join('');
+
+    // Ishraq & Chasht
+    const nf = currentTimes.nafal;
+    document.getElementById('nafalTimesList').innerHTML = `
+      <div class="prayer-item">
+        <div class="prayer-left"><span>🌤️</span><div class="prayer-name">ইশরাক</div></div>
+        <div class="prayer-time">${formatTimeShort(nf.ishraqStart, state.lang)} – ${formatTimeShort(nf.ishraqEnd, state.lang)}</div>
+      </div>
+      <div class="prayer-item">
+        <div class="prayer-left"><span>☀️</span><div class="prayer-name">চাশত (দুহা)</div></div>
+        <div class="prayer-time">${formatTimeShort(nf.chashtStart, state.lang)} – ${formatTimeShort(nf.chashtEnd, state.lang)}</div>
+      </div>
+    `;
+
+    // Forbidden Times
+    const fb = currentTimes.forbidden;
+    document.getElementById('forbiddenList').innerHTML = `
+      <div class="prayer-item forbidden-row">
+        <div class="prayer-name">সূর্যোদয়ের সময়</div>
+        <div class="prayer-time">${formatTimeShort(fb.sunriseStart, state.lang)} – ${formatTimeShort(fb.sunriseEnd, state.lang)}</div>
+      </div>
+      <div class="prayer-item forbidden-row">
+        <div class="prayer-name">দ্বিপ্রহর (যাওয়াল)</div>
+        <div class="prayer-time">${formatTimeShort(fb.zawalStart, state.lang)} – ${formatTimeShort(fb.zawalEnd, state.lang)}</div>
+      </div>
+      <div class="prayer-item forbidden-row">
+        <div class="prayer-name">সূর্যাস্তের সময়</div>
+        <div class="prayer-time">${formatTimeShort(fb.sunsetStart, state.lang)} – ${formatTimeShort(fb.sunsetEnd, state.lang)}</div>
+      </div>
+    `;
 
     updateCountdown();
   }
@@ -495,321 +309,387 @@
   function updateCountdown() {
     if (!currentTimes) return;
     const now = new Date();
-    const t = I18N[state.lang];
     const waqts = [
-      { key: 'fajr', time: currentTimes.fajr },
-      { key: 'dhuhr', time: currentTimes.dhuhr },
-      { key: 'asr', time: currentTimes.asr },
-      { key: 'maghrib', time: currentTimes.maghrib },
-      { key: 'isha', time: currentTimes.isha }
+      { name: 'ফজর', time: currentTimes.fajr },
+      { name: 'যোহর', time: currentTimes.dhuhr },
+      { name: 'আসর', time: currentTimes.asr },
+      { name: 'মাগরিব', time: currentTimes.maghrib },
+      { name: 'এশা', time: currentTimes.isha }
     ];
-
     let next = waqts.find(w => w.time > now);
     if (!next) {
-      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const tom = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
       const loc = getActiveCoords();
-      const tzOffset = -now.getTimezoneOffset() / 60;
-      const tomTimes = calculatePrayerTimes(tomorrow, loc.lat, loc.lng, state.madhab, tzOffset);
-      next = { key: 'fajr', time: tomTimes.fajr };
+      const tomT = calculatePrayerTimes(tom, loc.lat, loc.lng, state.madhab, -now.getTimezoneOffset() / 60);
+      next = { name: 'ফজর', time: tomT.fajr };
     }
-
-    const diffMs = Math.max(0, next.time - now);
-    const hrs = String(Math.floor(diffMs / 3600000)).padStart(2, '0');
-    const mins = String(Math.floor((diffMs % 3600000) / 60000)).padStart(2, '0');
-    const secs = String(Math.floor((diffMs % 60000) / 1000)).padStart(2, '0');
-
-    document.getElementById('nextWaqtLabel').textContent = t.nextWaqt;
-    document.getElementById('nextWaqtName').textContent = t.prayers[next.key];
-    document.getElementById('nextWaqtCountdown').textContent = fmtNum(`${hrs}:${mins}:${secs}`);
+    const diff = Math.max(0, next.time - now);
+    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    document.getElementById('nextWaqtName').textContent = next.name;
+    document.getElementById('nextWaqtCountdown').textContent = fmtNum(`${h}:${m}:${s}`);
     document.getElementById('nextWaqtAt').textContent = formatTimeShort(next.time, state.lang);
   }
 
-  // Tasbih Logic
-  const RING_CIRCUMFERENCE = 2 * Math.PI * 95;
+  // ==================== ULTRA-FAST TASBIH ENGINE ====================
+  const RING_C = 2 * Math.PI * 97;
+
+  function getActiveTasbih() {
+    return state.tasbihList.find(t => t.id === state.activeTasbihId) || state.tasbihList[0];
+  }
+
+  function recordTasbihStat(tasbihId, delta) {
+    let st = state.tasbihStats[tasbihId] || { dayKey: DAY_KEY, day: 0, monthKey: MONTH_KEY, month: 0, yearKey: YEAR_KEY, year: 0 };
+    if (st.dayKey !== DAY_KEY) { st.dayKey = DAY_KEY; st.day = 0; }
+    if (st.monthKey !== MONTH_KEY) { st.monthKey = MONTH_KEY; st.month = 0; }
+    if (st.yearKey !== YEAR_KEY) { st.yearKey = YEAR_KEY; st.year = 0; }
+    st.day += delta;
+    st.month += delta;
+    st.year += delta;
+    state.tasbihStats[tasbihId] = st;
+  }
 
   function renderTasbihPresets() {
     const wrap = document.getElementById('tasbihPresets');
     wrap.innerHTML = '';
-    TASBIH_PRESETS.forEach(p => {
+    state.tasbihList.forEach(t => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `preset-chip ${p.id === state.tasbihPresetId ? 'active' : ''}`;
-      btn.textContent = state.lang === 'bn' ? p.labelBn : p.labelEn;
+      btn.className = `preset-chip ${t.id === state.activeTasbihId ? 'active' : ''}`;
+      btn.textContent = t.label;
       btn.addEventListener('click', () => {
-        state.tasbihPresetId = p.id;
-        state.tasbihCount = 0;
-        state.tasbihTarget = p.defaultTarget;
+        state.activeTasbihId = t.id;
         saveState();
         renderTasbihPresets();
-        renderTasbihStage();
+        updateTasbihDisplay();
       });
       wrap.appendChild(btn);
     });
   }
 
-  function renderTasbihStage() {
-    const preset = TASBIH_PRESETS.find(p => p.id === state.tasbihPresetId) || TASBIH_PRESETS[0];
-    const t = I18N[state.lang];
+  // Fast DOM-only update (zero full re-render on tap!)
+  function updateTasbihDisplay() {
+    const t = getActiveTasbih();
+    const count = state.tasbihCounts[t.id] || 0;
+    const target = Number(t.target) || 0;
 
-    document.getElementById('tasbihArabic').textContent = preset.arabic;
-    document.getElementById('tasbihMeaning').textContent =
-      state.lang === 'bn' ? preset.meaningBn : preset.meaningEn;
+    document.getElementById('tasbihArabic').textContent = t.arabic || t.label;
+    document.getElementById('tasbihMeaning').textContent = t.meaning || '';
+    document.getElementById('tasbihCount').textContent = fmtNum(count);
+    document.getElementById('tasbihTargetLabel').textContent = target > 0 ? `/ ${fmtNum(target)}` : '/ অসীম';
+    document.getElementById('customTargetInput').placeholder = `লক্ষ্য (বর্তমান: ${target > 0 ? fmtNum(target) : 'অসীম'})`;
+    document.getElementById('soundStateText').textContent = state.tasbihSound ? 'সাউন্ড চালু' : 'সাউন্ড বন্ধ';
 
-    document.getElementById('tasbihCount').textContent = fmtNum(state.tasbihCount);
-    const targetText = state.tasbihTarget === 0 ? t.unlimited : fmtNum(state.tasbihTarget);
-    document.getElementById('tasbihTargetLabel').textContent = `/ ${targetText}`;
-    document.getElementById('targetCycleText').textContent = `${t.targetPrefix}${targetText}`;
-    document.getElementById('soundStateText').textContent = state.tasbihSound ? t.soundOn : t.soundOff;
-    document.getElementById('dailyTotalCount').textContent = fmtNum(state.dailyTotal);
+    const inner = document.getElementById('tasbihBtnInner');
+    const prog = document.getElementById('tasbihProgress');
+    const done = target > 0 && count >= target;
+    inner.classList.toggle('completed', done);
 
-    const progressEl = document.getElementById('tasbihProgress');
-    if (state.tasbihTarget > 0) {
-      const ratio = Math.min(1, state.tasbihCount / state.tasbihTarget);
-      progressEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - ratio);
+    if (target > 0) {
+      prog.style.strokeDashoffset = RING_C * (1 - Math.min(1, count / target));
     } else {
-      progressEl.style.strokeDashoffset = RING_CIRCUMFERENCE * 0.75;
+      prog.style.strokeDashoffset = RING_C * 0.75;
     }
   }
 
-  function handleTasbihTap() {
-    state.tasbihCount += 1;
-    state.dailyTotal += 1;
+  function renderTasbihSummary() {
+    const tbody = document.getElementById('tasbihSummaryBody');
+    let totalToday = 0;
+    tbody.innerHTML = state.tasbihList.map(t => {
+      const st = state.tasbihStats[t.id] || {};
+      const d = st.dayKey === DAY_KEY ? (st.day || 0) : 0;
+      const m = st.monthKey === MONTH_KEY ? (st.month || 0) : 0;
+      const y = st.yearKey === YEAR_KEY ? (st.year || 0) : 0;
+      totalToday += d;
+      return `<tr>
+        <td>${t.label}</td>
+        <td class="num">${fmtNum(d)}</td>
+        <td class="num">${fmtNum(m)}</td>
+        <td class="num">${fmtNum(y)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('totalAllToday').textContent = `আজ: ${fmtNum(totalToday)}`;
+  }
 
-    if (state.tasbihTarget > 0 && state.tasbihCount === state.tasbihTarget) {
-      if (state.tasbihSound) playChime();
-      const preset = TASBIH_PRESETS.find(p => p.id === state.tasbihPresetId);
-      const name = state.lang === 'bn' ? preset.labelBn : preset.labelEn;
-      showToast(
-        state.lang === 'bn' ? 'মাশাআল্লাহ! লক্ষ্য পূর্ণ হয়েছে' : 'MashaAllah! Target Completed',
-        state.lang === 'bn'
-          ? `${name} — ${fmtNum(state.tasbihTarget)} বার সম্পন্ন হয়েছে।`
-          : `${name} — ${state.tasbihTarget} times completed.`
-      );
-    } else if (state.tasbihSound) {
-      playTone(520, 0.04, 'sine', 0.07);
+  function handleInstantTasbihTap() {
+    const t = getActiveTasbih();
+    const target = Number(t.target) || 0;
+    const current = state.tasbihCounts[t.id] || 0;
+
+    // Hard stop at target!
+    if (target > 0 && current >= target) {
+      showToast('লক্ষ্য পূর্ণ হয়েছে ✅', `${t.label} — ${fmtNum(target)} বার সম্পন্ন! নতুন করে গুনতে রিসেট দিন।`);
+      return;
     }
 
+    const next = current + 1;
+    state.tasbihCounts[t.id] = next;
+    recordTasbihStat(t.id, 1);
+
+    if (target > 0 && next === target) {
+      playCompleteChime();
+      showToast('মাশাআল্লাহ! লক্ষ্য পূর্ণ ✅', `${t.label} — ${fmtNum(target)} বার সম্পন্ন হয়েছে।`);
+    } else {
+      playClick();
+    }
+
+    updateTasbihDisplay();
+    renderTasbihSummary();
     saveState();
-    renderTasbihStage();
   }
 
-  // Reminders Logic (Separate Loud Bangla Voice for Durood & Istighfar)
-  let duroodTimerId = null;
-  let istighfarTimerId = null;
-
-  function renderDuaCollection() {
-    const container = document.getElementById('duaCollection');
-    container.innerHTML = '';
-    DUROOD_ISTIGHFAR_LIST.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'dua-card';
-      div.innerHTML = `
-        <div class="dua-header">
-          <span class="dua-tag">${state.lang === 'bn' ? item.tagBn : item.tagEn}</span>
+  // ==================== NAMAZ & NAFAL ACCORDION ====================
+  function renderNamazTab() {
+    const data = window.NAMAZ_DATA;
+    document.getElementById('namazAccordion').innerHTML = data.prayers.map(p => `
+      <div class="acc-item">
+        <button class="acc-header" type="button"><span>${p.title}</span><span>▾</span></button>
+        <div class="acc-body">
+          <div class="arabic-text">${p.arabic}</div>
+          <div class="pronun">${p.pronun}</div>
+          <div class="meaning">${p.meaning}</div>
         </div>
-        <div class="arabic-text">${item.arabic}</div>
-        ${state.lang === 'bn' ? `<div class="dua-pronun">${item.pronunBn}</div>` : ''}
-        <div class="dua-meaning">${state.lang === 'bn' ? item.meaningBn : item.meaningEn}</div>
-      `;
-      container.appendChild(div);
+      </div>
+    `).join('');
+
+    document.getElementById('nafalAccordion').innerHTML = data.nafal.map(n => `
+      <div class="acc-item">
+        <button class="acc-header" type="button"><span>${n.title}</span><span>▾</span></button>
+        <div class="acc-body" style="white-space: pre-line;">${n.body}</div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.acc-header').forEach(btn => {
+      btn.addEventListener('click', () => btn.parentElement.classList.toggle('open'));
     });
   }
 
-  function triggerSingleReminder(type) {
-    const isDurood = type === 'durood';
-    const title = isDurood ? '🕌 দুরুদ শরীফ রিমাইন্ডার' : '🤲 ইস্তেগফার রিমাইন্ডার';
-    const body = isDurood
-      ? 'দুরুদ পড়ুন — اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ'
-      : 'নিজের পাপের জন্য ক্ষমা চান — أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ';
-
-    playVoiceClip(type);
-    showToast(title, body);
-
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: './icon.svg' });
-    }
+  // ==================== REMINDERS + QUIET HOURS ====================
+  function parseHHMM(str) {
+    const [h, m] = (str || '00:00').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
   }
 
-  // Native Android Offline Notification Channels (Capacitor LocalNotifications)
-  async function syncNativeAndroidReminders() {
+  function isInQuietWindow(nowDate, startStr, endStr) {
+    const cur = nowDate.getHours() * 60 + nowDate.getMinutes();
+    const s = parseHHMM(startStr);
+    const e = parseHHMM(endStr);
+    if (s <= e) return cur >= s && cur < e;
+    return cur >= s || cur < e; // spans midnight (e.g. 22:00 -> 07:00)
+  }
+
+  function isQuietNow(date = new Date()) {
+    if (state.quiet1On && isInQuietWindow(date, state.quiet1Start, state.quiet1End)) return true;
+    if (state.quiet2On && isInQuietWindow(date, state.quiet2Start, state.quiet2End)) return true;
+    return false;
+  }
+
+  let lastVoiceTime = 0;
+  function triggerReminder(type, isTest = false) {
+    if (!isTest && isQuietNow()) return;
+
+    // Prevent overlap if both fire at the exact same second
+    const nowMs = Date.now();
+    const delay = nowMs - lastVoiceTime < 3500 ? 3500 : 0;
+    lastVoiceTime = nowMs + delay;
+
+    setTimeout(() => {
+      const isDurood = type === 'durood';
+      const title = isDurood ? '🕌 দুরুদ শরীফ রিমাইন্ডার' : '🤲 ইস্তেগফার রিমাইন্ডার';
+      const body = isDurood ? 'দুরুদ পড়ুন' : 'নিজের পাপের জন্য ক্ষমা চান';
+      playVoiceClip(type);
+      showToast(title, body);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: './icon.svg' });
+      }
+    }, delay);
+  }
+
+  let duroodTimer = null;
+  let istighfarTimer = null;
+
+  async function syncNativeAndroidNotifications() {
     const LN = window.Capacitor?.Plugins?.LocalNotifications;
     if (!LN) return;
     try {
       const perm = await LN.requestPermissions();
       if (perm.display !== 'granted') return;
 
-      // Create two separate Android notification channels with custom offline male Bangla voice
-      await LN.createChannel({
-        id: 'durood_channel',
-        name: 'দুরুদ শরীফ রিমাইন্ডার',
-        description: 'ভয়েস রিমাইন্ডার: দুরুদ পড়ুন',
-        sound: 'durood_reminder.mp3',
-        importance: 5,
-        visibility: 1
-      });
-      await LN.createChannel({
-        id: 'istighfar_channel',
-        name: 'ইস্তেগফার রিমাইন্ডার',
-        description: 'ভয়েস রিমাইন্ডার: নিজের পাপের জন্য ক্ষমা চান',
-        sound: 'istighfar_reminder.mp3',
-        importance: 5,
-        visibility: 1
-      });
+      await LN.createChannel({ id: 'durood_channel', name: 'দুরুদ রিমাইন্ডার', sound: 'durood_reminder.mp3', importance: 5, visibility: 1 });
+      await LN.createChannel({ id: 'istighfar_channel', name: 'ইস্তেগফার রিমাইন্ডার', sound: 'istighfar_reminder.mp3', importance: 5, visibility: 1 });
 
-      // Cancel old scheduled notifications
-      await LN.cancel({ notifications: [{ id: 101 }, { id: 102 }] });
-
-      const mins = Number(state.reminderInterval) || 30;
-      const toSchedule = [];
-
-      if (state.duroodReminder) {
-        toSchedule.push({
-          id: 101,
-          title: '🕌 দুরুদ শরীফ রিমাইন্ডার',
-          body: 'দুরুদ পড়ুন — اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ',
-          channelId: 'durood_channel',
-          sound: 'durood_reminder.mp3',
-          schedule: { every: 'minute', count: mins, allowWhileIdle: true }
-        });
+      // Cancel previous scheduled reminders (IDs 200..260)
+      const pending = await LN.getPending();
+      if (pending?.notifications?.length) {
+        await LN.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
       }
 
-      if (state.istighfarReminder) {
-        toSchedule.push({
-          id: 102,
-          title: '🤲 ইস্তেগফার রিমাইন্ডার',
-          body: 'নিজের পাপের জন্য ক্ষমা চান — أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ',
-          channelId: 'istighfar_channel',
-          sound: 'istighfar_reminder.mp3',
-          schedule: {
-            at: new Date(Date.now() + Math.floor(mins / 2) * 60 * 1000),
-            every: 'minute',
-            count: mins,
-            allowWhileIdle: true
+      // Schedule next 24 hours of non-quiet-hour reminders (max 50 to stay within Android limits)
+      const list = [];
+      let nextId = 200;
+      const nowMs = Date.now();
+      const horizonMs = nowMs + 12 * 3600 * 1000;
+
+      if (state.duroodOn && state.duroodMin >= 1) {
+        for (let t = nowMs + state.duroodMin * 60000; t <= horizonMs && list.length < 25; t += state.duroodMin * 60000) {
+          const dt = new Date(t);
+          if (!isQuietNow(dt)) {
+            list.push({ id: nextId++, title: '🕌 দুরুদ শরীফ রিমাইন্ডার', body: 'দুরুদ পড়ুন', channelId: 'durood_channel', sound: 'durood_reminder.mp3', schedule: { at: dt, allowWhileIdle: true } });
           }
-        });
+        }
       }
 
-      if (toSchedule.length > 0) {
-        await LN.schedule({ notifications: toSchedule });
+      if (state.istighfarOn && state.istighfarMin >= 1) {
+        for (let t = nowMs + state.istighfarMin * 60000; t <= horizonMs && list.length < 50; t += state.istighfarMin * 60000) {
+          const dt = new Date(t + 5000); // +5s offset so it never collides with Durood
+          if (!isQuietNow(dt)) {
+            list.push({ id: nextId++, title: '🤲 ইস্তেগফার রিমাইন্ডার', body: 'নিজের পাপের জন্য ক্ষমা চান', channelId: 'istighfar_channel', sound: 'istighfar_reminder.mp3', schedule: { at: dt, allowWhileIdle: true } });
+          }
+        }
       }
+
+      if (list.length) await LN.schedule({ notifications: list });
     } catch (_) {}
   }
 
   function scheduleReminders() {
-    clearInterval(duroodTimerId);
-    clearInterval(istighfarTimerId);
+    clearInterval(duroodTimer);
+    clearInterval(istighfarTimer);
+    const anyOn = state.duroodOn || state.istighfarOn;
+    document.getElementById('reminderStatusBadge').textContent = anyOn ? 'চালু' : 'বন্ধ';
 
-    const badge = document.getElementById('reminderStatusBadge');
-    const t = I18N[state.lang];
-    const anyOn = state.duroodReminder || state.istighfarReminder;
-    badge.textContent = anyOn ? t.on : t.off;
-
-    const ms = Number(state.reminderInterval) * 60 * 1000;
-    if (state.duroodReminder) {
-      duroodTimerId = setInterval(() => triggerSingleReminder('durood'), ms);
+    if (state.duroodOn && state.duroodMin >= 1) {
+      duroodTimer = setInterval(() => triggerReminder('durood'), state.duroodMin * 60000);
     }
-    if (state.istighfarReminder) {
-      // Stagger Istighfar by half interval so both never overlap!
-      setTimeout(() => {
-        if (state.istighfarReminder) {
-          istighfarTimerId = setInterval(() => triggerSingleReminder('istighfar'), ms);
-        }
-      }, Math.floor(ms / 2));
+    if (state.istighfarOn && state.istighfarMin >= 1) {
+      istighfarTimer = setInterval(() => triggerReminder('istighfar'), state.istighfarMin * 60000);
     }
-
-    syncNativeAndroidReminders();
+    syncNativeAndroidNotifications();
   }
 
-  // Apply Language & Theme
-  function applyI18n() {
-    const t = I18N[state.lang];
-    document.documentElement.lang = state.lang;
-    document.getElementById('appTitle').textContent = t.appTitle;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
-      if (t[key]) el.textContent = t[key];
-    });
-    renderDistrictOptions();
-    updatePrayerTimes();
-    renderTasbihPresets();
-    renderTasbihStage();
-    renderDuaCollection();
-    scheduleReminders();
-  }
-
-  function applyTheme() {
+  // ==================== INIT ====================
+  function init() {
+    // Sync UI controls
     document.body.classList.toggle('dark', state.darkMode);
     document.getElementById('darkModeToggle').checked = state.darkMode;
-  }
-
-  // Init
-  function init() {
+    document.getElementById('hijriAdjustSelect').value = String(state.hijriAdjust);
     document.getElementById('madhabSelect').value = state.madhab;
     document.getElementById('langSelect').value = state.lang;
-    document.getElementById('duroodToggle').checked = state.duroodReminder;
-    document.getElementById('istighfarToggle').checked = state.istighfarReminder;
-    document.getElementById('reminderInterval').value = String(state.reminderInterval);
 
-    // Bottom nav
-    document.querySelectorAll('.nav-item').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
+    document.getElementById('duroodToggle').checked = state.duroodOn;
+    document.getElementById('duroodMinutes').value = state.duroodMin;
+    document.getElementById('istighfarToggle').checked = state.istighfarOn;
+    document.getElementById('istighfarMinutes').value = state.istighfarMin;
+    document.getElementById('quiet1Toggle').checked = state.quiet1On;
+    document.getElementById('quiet1Start').value = state.quiet1Start;
+    document.getElementById('quiet1End').value = state.quiet1End;
+    document.getElementById('quiet2Toggle').checked = state.quiet2On;
+    document.getElementById('quiet2Start').value = state.quiet2Start;
+    document.getElementById('quiet2End').value = state.quiet2End;
 
+    // Nav
+    document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
     document.getElementById('locationBtn').addEventListener('click', () => switchTab('settings'));
-    document.getElementById('goToRemindersBtn').addEventListener('click', () => switchTab('reminders'));
 
-    // Tasbih events
-    document.getElementById('tasbihTapBtn').addEventListener('click', handleTasbihTap);
+    // Ultra-fast Tasbih pointerdown listener on entire circle
+    const tapZone = document.getElementById('tasbihTapZone');
+    tapZone.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      tapZone.classList.add('pressed');
+      handleInstantTasbihTap();
+      setTimeout(() => tapZone.classList.remove('pressed'), 70);
+    });
+
     document.getElementById('tasbihResetBtn').addEventListener('click', () => {
-      state.tasbihCount = 0;
+      const t = getActiveTasbih();
+      state.tasbihCounts[t.id] = 0;
       saveState();
-      renderTasbihStage();
+      updateTasbihDisplay();
     });
-    document.getElementById('tasbihTargetBtn').addEventListener('click', () => {
-      const targets = [33, 100, 0];
-      const idx = targets.indexOf(state.tasbihTarget);
-      state.tasbihTarget = targets[(idx + 1) % targets.length];
-      saveState();
-      renderTasbihStage();
-    });
+
     document.getElementById('tasbihSoundBtn').addEventListener('click', () => {
       state.tasbihSound = !state.tasbihSound;
       saveState();
-      renderTasbihStage();
+      updateTasbihDisplay();
     });
 
-    // Reminder events
-    document.getElementById('duroodToggle').addEventListener('change', e => {
-      state.duroodReminder = e.target.checked;
+    document.getElementById('saveTargetBtn').addEventListener('click', () => {
+      const val = parseInt(document.getElementById('customTargetInput').value, 10);
+      if (isNaN(val) || val < 0) return;
+      const t = getActiveTasbih();
+      t.target = val;
+      document.getElementById('customTargetInput').value = '';
       saveState();
-      scheduleReminders();
-    });
-    document.getElementById('istighfarToggle').addEventListener('change', e => {
-      state.istighfarReminder = e.target.checked;
-      saveState();
-      scheduleReminders();
-    });
-    document.getElementById('reminderInterval').addEventListener('change', e => {
-      state.reminderInterval = Number(e.target.value);
-      saveState();
-      scheduleReminders();
+      updateTasbihDisplay();
+      showToast('লক্ষ্য সেট হয়েছে', `${t.label} — নতুন লক্ষ্য: ${val === 0 ? 'অসীম' : fmtNum(val)}`);
     });
 
-    // Separate Loud Voice Test Buttons
-    document.getElementById('testDuroodBtn').addEventListener('click', () => {
-      triggerSingleReminder('durood');
-    });
-    document.getElementById('testIstighfarBtn').addEventListener('click', () => {
-      triggerSingleReminder('istighfar');
+    document.getElementById('manualAddBtn').addEventListener('click', () => {
+      const val = parseInt(document.getElementById('manualAddInput').value, 10);
+      if (isNaN(val) || val <= 0) return;
+      const t = getActiveTasbih();
+      recordTasbihStat(t.id, val);
+      document.getElementById('manualAddInput').value = '';
+      saveState();
+      renderTasbihSummary();
+      showToast('তসবিহ যোগ হয়েছে ✅', `${t.label} (+${fmtNum(val)}) সামারিতে যুক্ত হয়েছে।`);
     });
 
-    // Settings events
-    document.getElementById('detectGpsBtn').addEventListener('click', () => {
-      detectGpsLocation(false);
+    document.getElementById('addCustomTasbihBtn').addEventListener('click', () => {
+      const name = document.getElementById('newTasbihName').value.trim();
+      const target = parseInt(document.getElementById('newTasbihTarget').value, 10) || 100;
+      if (!name) return;
+      const id = 'custom_' + Date.now();
+      state.tasbihList.push({ id, label: name, arabic: name, meaning: 'কাস্টম তসবিহ', target });
+      state.activeTasbihId = id;
+      document.getElementById('newTasbihName').value = '';
+      saveState();
+      renderTasbihPresets();
+      updateTasbihDisplay();
+      renderTasbihSummary();
+      showToast('নতুন তসবিহ যুক্ত হয়েছে', name);
+    });
+
+    // Save Reminders
+    document.getElementById('saveRemindersBtn').addEventListener('click', () => {
+      state.duroodOn = document.getElementById('duroodToggle').checked;
+      state.duroodMin = Math.max(1, parseInt(document.getElementById('duroodMinutes').value, 10) || 15);
+      state.istighfarOn = document.getElementById('istighfarToggle').checked;
+      state.istighfarMin = Math.max(1, parseInt(document.getElementById('istighfarMinutes').value, 10) || 20);
+      state.quiet1On = document.getElementById('quiet1Toggle').checked;
+      state.quiet1Start = document.getElementById('quiet1Start').value;
+      state.quiet1End = document.getElementById('quiet1End').value;
+      state.quiet2On = document.getElementById('quiet2Toggle').checked;
+      state.quiet2Start = document.getElementById('quiet2Start').value;
+      state.quiet2End = document.getElementById('quiet2End').value;
+      saveState();
+      scheduleReminders();
+      showToast('✅ রিমাইন্ডার সেভ হয়েছে', `দুরুদ: ${fmtNum(state.duroodMin)} মি. | ইস্তেগফার: ${fmtNum(state.istighfarMin)} মি.`);
+    });
+
+    document.getElementById('testDuroodBtn').addEventListener('click', () => triggerReminder('durood', true));
+    document.getElementById('testIstighfarBtn').addEventListener('click', () => triggerReminder('istighfar', true));
+
+    // Settings
+    document.getElementById('detectGpsBtn').addEventListener('click', () => detectGps(false));
+    document.getElementById('divisionSelect').addEventListener('change', e => {
+      state.divisionId = e.target.value;
+      const firstDist = BD_DISTRICTS.find(d => d.div === state.divisionId);
+      if (firstDist) state.districtId = firstDist.id;
+      state.useGps = false;
+      saveState();
+      renderDivisionDistricts();
+      updatePrayerTimes();
     });
     document.getElementById('districtSelect').addEventListener('change', e => {
       state.districtId = e.target.value;
       state.useGps = false;
+      saveState();
+      updatePrayerTimes();
+    });
+    document.getElementById('hijriAdjustSelect').addEventListener('change', e => {
+      state.hijriAdjust = Number(e.target.value);
       saveState();
       updatePrayerTimes();
     });
@@ -821,23 +701,25 @@
     document.getElementById('langSelect').addEventListener('change', e => {
       state.lang = e.target.value;
       saveState();
-      applyI18n();
+      renderDivisionDistricts();
+      updatePrayerTimes();
+      updateTasbihDisplay();
+      renderTasbihSummary();
     });
     document.getElementById('darkModeToggle').addEventListener('change', e => {
       state.darkMode = e.target.checked;
+      document.body.classList.toggle('dark', state.darkMode);
       saveState();
-      applyTheme();
     });
 
-    // Auto-track GPS when data comes online
-    window.addEventListener('online', () => {
-      if (state.useGps) detectGpsLocation(true);
-    });
+    renderDivisionDistricts();
+    updatePrayerTimes();
+    renderTasbihPresets();
+    updateTasbihDisplay();
+    renderTasbihSummary();
+    renderNamazTab();
+    scheduleReminders();
 
-    applyTheme();
-    applyI18n();
-
-    // Update countdown every second
     setInterval(updateCountdown, 1000);
   }
 

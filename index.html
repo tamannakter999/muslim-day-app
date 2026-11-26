@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Muslim Day — নামাজ, সাহরী-ইফতার ও তসবিহ</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="icon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon.png" />
   <meta name="theme-color" content="#0d6e5b" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,14 +18,14 @@
   </div>
 
   <div class="app-shell">
-    <!-- Top Header -->
+    <!-- Header -->
     <header class="top-header">
       <div class="header-row">
         <div class="brand">
-          <div class="brand-icon">☪️</div>
+          <img src="icon.png" alt="Muslim Day" class="brand-logo" />
           <h1 id="appTitle">মুসলিম ডে</h1>
         </div>
-        <button id="locationBtn" class="location-pill" title="জেলা পরিবর্তন করুন">
+        <button id="locationBtn" class="location-pill" type="button">
           <span>📍</span>
           <span id="currentDistrictLabel">ঢাকা</span>
         </button>
@@ -51,31 +48,29 @@
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="content">
       <!-- TAB 1: HOME -->
       <section id="tab-home" class="tab-panel active">
+        <!-- Special Islamic Day / Nafal Fast Banner (auto shown when applicable) -->
+        <div id="specialDayBanner" class="card" style="display:none; background: var(--gold-soft); border-color: var(--gold);">
+          <div id="specialDayText" style="font-size: 13px; font-weight: 600;"></div>
+        </div>
+
         <!-- Sehri & Iftar -->
         <div class="sehri-iftar-grid">
           <div class="si-card sehri">
-            <div class="si-top">
-              <span>🌙</span>
-              <span data-i18n="sehriLabel">সাহরীর শেষ সময়</span>
-            </div>
+            <div class="si-top"><span>🌙</span><span data-i18n="sehriLabel">সাহরীর শেষ সময়</span></div>
             <div id="sehriTime" class="si-time">--:--</div>
             <div id="sehriSub" class="si-sub">ফজরের ৩ মিনিট আগে</div>
           </div>
           <div class="si-card iftar">
-            <div class="si-top">
-              <span>🌅</span>
-              <span data-i18n="iftarLabel">ইফতারের সময়</span>
-            </div>
+            <div class="si-top"><span>🌅</span><span data-i18n="iftarLabel">ইফতারের সময়</span></div>
             <div id="iftarTime" class="si-time">--:--</div>
             <div id="iftarSub" class="si-sub">মাগরিবের ওয়াক্ত</div>
           </div>
         </div>
 
-        <!-- Prayer Times Card -->
+        <!-- 5 Daily Prayers -->
         <div class="card">
           <div class="card-title">
             <span data-i18n="prayerTimesTitle">আজকের নামাজের সময়সূচী</span>
@@ -84,14 +79,22 @@
           <div id="prayerList" class="prayer-list"></div>
         </div>
 
-        <!-- Daily Durood & Istighfar Card -->
-        <div class="quick-zikr-card">
-          <div class="card-title" style="margin-bottom: 6px;">
-            <span data-i18n="dailyZikrTitle">আজকের দরূদ ও ইস্তিগফার</span>
-            <button id="goToRemindersBtn" class="ctrl-btn" style="padding: 4px 10px; font-size: 12px;" data-i18n="reminderBtn">রিমাইন্ডার ↗</button>
+        <!-- Nafal Prayer Times (Ishraq & Chasht) -->
+        <div class="card">
+          <div class="card-title">
+            <span>☀️ ইশরাক ও চাশতের সময়</span>
+            <span class="card-badge">নফল</span>
           </div>
-          <div class="arabic-text">أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ</div>
-          <div class="dua-meaning" data-i18n="dailyIstighfarMeaning">আমি মহান আল্লাহর কাছে ক্ষমা প্রার্থনা করছি এবং তাঁর দিকেই ফিরে আসছি।</div>
+          <div id="nafalTimesList" class="prayer-list"></div>
+        </div>
+
+        <!-- Forbidden Prayer Times -->
+        <div class="card">
+          <div class="card-title">
+            <span>⛔ সালাতের নিষিদ্ধ সময়</span>
+            <span class="card-badge danger">সতর্কতা</span>
+          </div>
+          <div id="forbiddenList" class="prayer-list"></div>
         </div>
       </section>
 
@@ -103,148 +106,218 @@
           <div id="tasbihArabic" class="tasbih-arabic">سُبْحَانَ اللَّهِ</div>
           <div id="tasbihMeaning" class="tasbih-meaning">সুবহানাল্লাহ — আল্লাহ পবিত্র</div>
 
-          <div class="tasbih-ring-wrap">
-            <svg class="tasbih-svg" width="210" height="210" viewBox="0 0 210 210">
-              <circle class="tasbih-track" cx="105" cy="105" r="95"></circle>
-              <circle id="tasbihProgress" class="tasbih-progress" cx="105" cy="105" r="95"
-                stroke-dasharray="596.9" stroke-dashoffset="596.9"></circle>
+          <!-- Full-Area Instant Pointerdown Tap Zone -->
+          <div id="tasbihTapZone" class="tasbih-tap-zone" role="button" tabindex="0" aria-label="Tasbih Counter">
+            <svg class="tasbih-svg" width="214" height="214" viewBox="0 0 214 214">
+              <circle class="tasbih-track" cx="107" cy="107" r="97"></circle>
+              <circle id="tasbihProgress" class="tasbih-progress" cx="107" cy="107" r="97"
+                stroke-dasharray="609.47" stroke-dashoffset="609.47"></circle>
             </svg>
-            <button id="tasbihTapBtn" class="tasbih-btn" type="button">
+            <div id="tasbihBtnInner" class="tasbih-btn-inner">
               <span id="tasbihCount" class="tasbih-count">০</span>
               <span id="tasbihTargetLabel" class="tasbih-target">/ ৩৩</span>
-            </button>
+            </div>
           </div>
 
           <div class="tasbih-controls">
-            <button id="tasbihResetBtn" class="ctrl-btn" type="button">🔄 <span data-i18n="reset">রিসেট</span></button>
-            <button id="tasbihTargetBtn" class="ctrl-btn" type="button">🎯 <span id="targetCycleText">লক্ষ্য: ৩৩</span></button>
+            <button id="tasbihResetBtn" class="ctrl-btn" type="button">🔄 রিসেট</button>
             <button id="tasbihSoundBtn" class="ctrl-btn" type="button">🔊 <span id="soundStateText">সাউন্ড চালু</span></button>
           </div>
 
-          <div class="daily-total-bar">
-            <span data-i18n="todayTotal">আজকের মোট তসবিহ</span>
-            <span id="dailyTotalCount">০</span>
+          <!-- Custom Target for Current Tasbih -->
+          <div class="inline-form">
+            <input id="customTargetInput" type="number" min="0" max="100000" class="text-input" placeholder="কাস্টম লক্ষ্য (যেমন: 10, 50, 100, 0=অসীম)" />
+            <button id="saveTargetBtn" class="ctrl-btn" type="button" style="background: var(--primary); color: #fff; border-color: var(--primary);">সেট</button>
           </div>
+
+          <!-- Manual Hand-Counted Add -->
+          <div class="inline-form">
+            <input id="manualAddInput" type="number" min="1" max="100000" class="text-input" placeholder="হাতে গোনা সংখ্যা যোগ করুন (যেমন: 33)" />
+            <button id="manualAddBtn" class="ctrl-btn" type="button" style="background: var(--gold); color: #152420; border-color: var(--gold); font-weight: 600;">+ যোগ</button>
+          </div>
+        </div>
+
+        <!-- Add Custom Tasbih -->
+        <div class="card">
+          <div class="card-title"><span>➕ নতুন কাস্টম তসবিহ যোগ করুন</span></div>
+          <div class="inline-form" style="margin-top: 0;">
+            <input id="newTasbihName" type="text" class="text-input" placeholder="তসবিহর নাম (যেমন: ইয়া হাইয়্যু)" />
+            <input id="newTasbihTarget" type="number" min="0" class="num-input" placeholder="লক্ষ্য" value="100" />
+            <button id="addCustomTasbihBtn" class="ctrl-btn" type="button" style="background: var(--primary); color: #fff;">যোগ</button>
+          </div>
+        </div>
+
+        <!-- Daily / Monthly / Yearly Summary -->
+        <div class="card">
+          <div class="card-title">
+            <span>📊 তসবিহ সামারি</span>
+            <span id="totalAllToday" class="card-badge">আজ: ০</span>
+          </div>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>তসবিহ</th>
+                <th class="num">দৈনিক</th>
+                <th class="num">মাসিক</th>
+                <th class="num">বার্ষিক</th>
+              </tr>
+            </thead>
+            <tbody id="tasbihSummaryBody"></tbody>
+          </table>
         </div>
       </section>
 
-      <!-- TAB 3: DUROOD & ISTIGHFAR REMINDERS -->
+      <!-- TAB 3: NAMAZ & AMAL -->
+      <section id="tab-namaz" class="tab-panel">
+        <div class="card">
+          <div class="card-title">
+            <span>🕌 অর্থপূর্ণ নামাজ ও সালাতুর রাসূল (ﷺ)</span>
+          </div>
+          <div id="namazAccordion"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>🌙 নফল রোজা ও বিশেষ ইবাদত</span>
+          </div>
+          <div id="nafalAccordion"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: REMINDERS -->
       <section id="tab-reminders" class="tab-panel">
         <div class="card">
           <div class="card-title">
-            <span data-i18n="reminderSettings">দরূদ ও ইস্তিগফার রিমাইন্ডার</span>
+            <span>🔔 দরূদ ও ইস্তিগফার ভয়েস রিমাইন্ডার</span>
             <span id="reminderStatusBadge" class="card-badge">চালু</span>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="duroodRemTitle">দরূদ শরীফ রিমাইন্ডার</h4>
-              <p data-i18n="duroodRemDesc">নিয়মিত দরূদ পাঠের জন্য স্মরণ করিয়ে দেবে</p>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>দরূদ শরীফ রিমাইন্ডার ("দুরুদ পড়ুন")</h4>
+              <p>কাস্টম মিনিট পর পর (অফলাইনেও কাজ করবে)</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="duroodToggle" checked />
               <span class="slider"></span>
             </label>
           </div>
+          <div class="setting-row">
+            <div class="setting-info"><h4>দরূদ বিরতি (মিনিট)</h4></div>
+            <input type="number" id="duroodMinutes" class="num-input" min="1" max="1440" value="15" />
+          </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="istighfarRemTitle">ইস্তিগফার রিমাইন্ডার</h4>
-              <p data-i18n="istighfarRemDesc">আস্তাগফিরুল্লাহ পড়ার জন্য স্মরণ করিয়ে দেবে</p>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>ইস্তিগফার রিমাইন্ডার ("নিজের পাপের জন্য ক্ষমা চান")</h4>
+              <p>আলাদা কাস্টম মিনিট পর পর</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="istighfarToggle" checked />
               <span class="slider"></span>
             </label>
           </div>
+          <div class="setting-row">
+            <div class="setting-info"><h4>ইস্তিগফার বিরতি (মিনিট)</h4></div>
+            <input type="number" id="istighfarMinutes" class="num-input" min="1" max="1440" value="20" />
+          </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="intervalTitle">রিমাইন্ডার বিরতি</h4>
-              <p data-i18n="intervalDesc">কত সময় পর পর রিমাইন্ডার আসবে</p>
+          <!-- Quiet Hours / Off-Time Windows -->
+          <div class="setting-row" style="margin-top: 6px;">
+            <div class="setting-info">
+              <h4>🔕 বন্ধ রাখার সময় ১ (যেমন: রাতের ঘুম)</h4>
+              <p>এই সময়ে রিমাইন্ডার বন্ধ থাকবে, পরে অটো চালু হবে</p>
             </div>
-            <select id="reminderInterval" class="select-input">
-              <option value="15">১৫ মিনিট</option>
-              <option value="30" selected>৩০ মিনিট</option>
-              <option value="60">১ ঘণ্টা</option>
-              <option value="120">২ ঘণ্টা</option>
-            </select>
+            <label class="switch">
+              <input type="checkbox" id="quiet1Toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--border);">
+            <input type="time" id="quiet1Start" class="time-input" value="22:00" style="flex:1;" />
+            <span style="font-size:12px;">থেকে</span>
+            <input type="time" id="quiet1End" class="time-input" value="07:00" style="flex:1;" />
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
-            <button id="testDuroodBtn" class="primary-btn" style="margin-top: 0; font-size: 13px;" type="button">
-              🔊 দুরুদ টেস্ট
-            </button>
-            <button id="testIstighfarBtn" class="primary-btn" style="margin-top: 0; font-size: 13px; background: var(--gold); color: #162621;" type="button">
-              🔊 ইস্তেগফার টেস্ট
-            </button>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>🔕 বন্ধ রাখার সময় ২ (যেমন: অফিস/কাজ)</h4>
+              <p>দ্বিতীয় কাস্টম অফ-টাইম</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="quiet2Toggle" />
+              <span class="slider"></span>
+            </label>
           </div>
-          <p id="voiceNote" style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px; text-align: center;">
-            অফলাইন বাংলা পুরুষ ভয়েস: "দুরুদ পড়ুন" এবং "নিজের পাপের জন্য ক্ষমা চান"
-          </p>
-        </div>
+          <div style="display:flex; gap:8px; align-items:center; padding-bottom:12px;">
+            <input type="time" id="quiet2Start" class="time-input" value="10:00" style="flex:1;" />
+            <span style="font-size:12px;">থেকে</span>
+            <input type="time" id="quiet2End" class="time-input" value="17:00" style="flex:1;" />
+          </div>
 
-        <!-- Durood & Istighfar Collection -->
-        <div class="card">
-          <div class="card-title">
-            <span data-i18n="collectionTitle">দরূদ ও ইস্তিগফার সমূহ</span>
+          <button id="saveRemindersBtn" class="primary-btn" type="button">💾 রিমাইন্ডার সেভ করুন</button>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+            <button id="testDuroodBtn" class="primary-btn" style="font-size:12.5px;" type="button">🔊 দুরুদ টেস্ট</button>
+            <button id="testIstighfarBtn" class="primary-btn gold" style="font-size:12.5px;" type="button">🔊 ইস্তেগফার টেস্ট</button>
           </div>
-          <div id="duaCollection"></div>
         </div>
       </section>
 
-      <!-- TAB 4: SETTINGS -->
+      <!-- TAB 5: SETTINGS -->
       <section id="tab-settings" class="tab-panel">
         <div class="card">
-          <div class="card-title">
-            <span data-i18n="settingsTitle">অ্যাপ সেটিংস</span>
+          <div class="card-title"><span>⚙️ লোকেশন ও অ্যাপ সেটিংস</span></div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>অটো লোকেশন (GPS)</h4>
+              <p id="gpsStatusText">ডাটা অন থাকলে অটোমেটিক লোকেশন নেবে</p>
+            </div>
+            <button id="detectGpsBtn" class="ctrl-btn" type="button">📍 ট্র্যাক</button>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="gpsSetting">অটো লোকেশন (GPS)</h4>
-              <p id="gpsStatusText" data-i18n="gpsDesc">ডাটা অন থাকলে অটোমেটিক আপনার লোকেশন নেবে</p>
-            </div>
-            <button id="detectGpsBtn" class="ctrl-btn" type="button" style="white-space: nowrap;">
-              📍 ট্র্যাক করুন
-            </button>
+          <div class="setting-row">
+            <div class="setting-info"><h4>বিভাগ (Division)</h4></div>
+            <select id="divisionSelect" class="select-input"></select>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="districtSetting">জেলা / শহর</h4>
-              <p data-i18n="districtDesc">নামাজ ও সাহরী-ইফতারের সময়ের জন্য</p>
-            </div>
+          <div class="setting-row">
+            <div class="setting-info"><h4>জেলা (৬৪ জেলা)</h4></div>
             <select id="districtSelect" class="select-input"></select>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="madhabSetting">আসর নামাজের মাযহাব</h4>
-              <p data-i18n="madhabDesc">বাংলাদেশে সাধারণত হানাফী অনুসরণ করা হয়</p>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>হিজরি তারিখ সমন্বয়</h4>
+              <p>চাঁদ দেখা অনুযায়ী ±১ দিন ঠিক করুন</p>
             </div>
+            <select id="hijriAdjustSelect" class="select-input">
+              <option value="-2">-২ দিন</option>
+              <option value="-1" selected>-১ দিন (বাংলাদেশ)</option>
+              <option value="0">০ (স্বাভাবিক)</option>
+              <option value="1">+১ দিন</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info"><h4>আসর মাযহাব</h4></div>
             <select id="madhabSelect" class="select-input">
               <option value="hanafi">হানাফী (Hanafi)</option>
               <option value="standard">শাফেয়ী / সাধারণ</option>
             </select>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="langSetting">ভাষা (Language)</h4>
-              <p>বাংলা / English</p>
-            </div>
+          <div class="setting-row">
+            <div class="setting-info"><h4>ভাষা (Language)</h4></div>
             <select id="langSelect" class="select-input">
               <option value="bn">বাংলা</option>
               <option value="en">English</option>
             </select>
           </div>
 
-          <div class="reminder-row">
-            <div class="reminder-info">
-              <h4 data-i18n="darkModeSetting">ডার্ক মোড (Dark Mode)</h4>
-              <p data-i18n="darkModeDesc">রাতের বেলা চোখের আরামের জন্য</p>
-            </div>
+          <div class="setting-row">
+            <div class="setting-info"><h4>ডার্ক মোড (Dark Mode)</h4></div>
             <label class="switch">
               <input type="checkbox" id="darkModeToggle" />
               <span class="slider"></span>
@@ -254,28 +327,18 @@
       </section>
     </main>
 
-    <!-- Bottom Navigation -->
+    <!-- 5-Tab Bottom Navigation -->
     <nav class="bottom-nav">
-      <button class="nav-item active" data-tab="home" type="button">
-        <span class="nav-icon">🕌</span>
-        <span data-i18n="navHome">হোম</span>
-      </button>
-      <button class="nav-item" data-tab="tasbih" type="button">
-        <span class="nav-icon">📿</span>
-        <span data-i18n="navTasbih">তসবিহ</span>
-      </button>
-      <button class="nav-item" data-tab="reminders" type="button">
-        <span class="nav-icon">🔔</span>
-        <span data-i18n="navReminders">রিমাইন্ডার</span>
-      </button>
-      <button class="nav-item" data-tab="settings" type="button">
-        <span class="nav-icon">⚙️</span>
-        <span data-i18n="navSettings">সেটিংস</span>
-      </button>
+      <button class="nav-item active" data-tab="home" type="button"><span class="nav-icon">🕌</span><span>হোম</span></button>
+      <button class="nav-item" data-tab="tasbih" type="button"><span class="nav-icon">📿</span><span>তসবিহ</span></button>
+      <button class="nav-item" data-tab="namaz" type="button"><span class="nav-icon">📖</span><span>নামাজ</span></button>
+      <button class="nav-item" data-tab="reminders" type="button"><span class="nav-icon">🔔</span><span>রিমাইন্ডার</span></button>
+      <button class="nav-item" data-tab="settings" type="button"><span class="nav-icon">⚙️</span><span>সেটিংস</span></button>
     </nav>
   </div>
 
   <script src="prayer-times.js"></script>
+  <script src="namaz-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
