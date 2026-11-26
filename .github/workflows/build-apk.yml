@@ -14,21 +14,32 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Prepare Web Assets (www)
+        run: |
+          mkdir -p www/audio
+          cp -f index.html styles.css app.js prayer-times.js manifest.json sw.js icon.svg www/ 2>/dev/null || true
+          cp -f audio/*.mp3 www/audio/ 2>/dev/null || true
+          node -e '
+            const fs = require("fs");
+            const cfg = JSON.parse(fs.readFileSync("capacitor.config.json", "utf8"));
+            cfg.webDir = "www";
+            fs.writeFileSync("capacitor.config.json", JSON.stringify(cfg, null, 2));
+          '
 
       - name: Install dependencies & Create Android Project
         run: |
           npm install
           npx cap add android
           mkdir -p android/app/src/main/res/raw
-          cp audio/durood_reminder.mp3 android/app/src/main/res/raw/
-          cp audio/istighfar_reminder.mp3 android/app/src/main/res/raw/
+          cp -f audio/*.mp3 android/app/src/main/res/raw/ 2>/dev/null || true
           npx cap sync android
 
       - name: Build Debug APK
