@@ -25,10 +25,13 @@
           <img src="icon.png" alt="Muslim Day" class="brand-logo" />
           <h1 id="appTitle">মুসলিম ডে</h1>
         </div>
-        <button id="locationBtn" class="location-pill" type="button">
-          <span>📍</span>
-          <span id="currentDistrictLabel">ঢাকা</span>
-        </button>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button id="locationBtn" class="location-pill" type="button">
+            <span>📍</span>
+            <span id="currentDistrictLabel">ঢাকা</span>
+          </button>
+          <button id="settingsTopBtn" class="location-pill" type="button" title="সেটিংস" style="padding:5px 8px;">⚙️</button>
+        </div>
       </div>
 
       <div class="date-block">
@@ -79,6 +82,13 @@
           <div id="prayerList" class="prayer-list"></div>
         </div>
 
+        <!-- Daily Quran & Hadith -->
+        <div class="card" style="background: linear-gradient(135deg, var(--surface), var(--surface-alt));">
+          <div class="card-title"><span>📖 আজকের কুরআন ও হাদীস</span></div>
+          <div id="dailyQuranText" style="font-size:13px; font-weight:600; color:var(--primary); margin-bottom:6px; line-height:1.5;"></div>
+          <div id="dailyHadithText" style="font-size:12.5px; color:var(--text-muted); line-height:1.5;"></div>
+        </div>
+
         <!-- Nafal Prayer Times (Ishraq & Chasht) -->
         <div class="card">
           <div class="card-title">
@@ -122,35 +132,104 @@
           <div class="tasbih-controls">
             <button id="tasbihResetBtn" class="ctrl-btn" type="button">🔄 রিসেট</button>
             <button id="tasbihSoundBtn" class="ctrl-btn" type="button">🔊 <span id="soundStateText">সাউন্ড চালু</span></button>
-          </div>
-
-          <!-- Custom Target for Current Tasbih -->
-          <div class="inline-form">
-            <input id="customTargetInput" type="number" min="0" max="100000" class="text-input" placeholder="কাস্টম লক্ষ্য (যেমন: 10, 50, 100, 0=অসীম)" />
-            <button id="saveTargetBtn" class="ctrl-btn" type="button" style="background: var(--primary); color: #fff; border-color: var(--primary);">সেট</button>
-          </div>
-
-          <!-- Manual Hand-Counted Add -->
-          <div class="inline-form">
-            <input id="manualAddInput" type="number" min="1" max="100000" class="text-input" placeholder="হাতে গোনা সংখ্যা যোগ করুন (যেমন: 33)" />
-            <button id="manualAddBtn" class="ctrl-btn" type="button" style="background: var(--gold); color: #152420; border-color: var(--gold); font-weight: 600;">+ যোগ</button>
+            <button id="toggleTasbihToolsBtn" class="ctrl-btn" type="button">⚙️ কাস্টমাইজ</button>
           </div>
         </div>
 
-        <!-- Add Custom Tasbih -->
-        <div class="card">
-          <div class="card-title"><span>➕ নতুন কাস্টম তসবিহ যোগ করুন</span></div>
-          <div class="inline-form" style="margin-top: 0;">
-            <input id="newTasbihName" type="text" class="text-input" placeholder="তসবিহর নাম (যেমন: ইয়া হাইয়্যু)" />
-            <input id="newTasbihTarget" type="number" min="0" class="num-input" placeholder="লক্ষ্য" value="100" />
-            <button id="addCustomTasbihBtn" class="ctrl-btn" type="button" style="background: var(--primary); color: #fff;">যোগ</button>
+        <!-- Collapsible Tasbih Tools Drawer (Hidden by default for ultra-clean UI!) -->
+        <div id="tasbihToolsDrawer" style="display:none;">
+          <div class="card">
+            <div class="card-title">
+              <span>🎯 লক্ষ্য ও হাতে গোনা যোগ</span>
+              <div style="display:flex; gap:6px;">
+                <button id="editTasbihBtn" class="ctrl-btn" style="padding:4px 8px; font-size:11.5px;" type="button">✏️ এডিট</button>
+                <button id="deleteTasbihBtn" class="ctrl-btn" style="padding:4px 8px; font-size:11.5px; color:var(--danger);" type="button">🗑️ ডিলিট</button>
+              </div>
+            </div>
+            <div class="inline-form" style="margin-top:0;">
+              <input id="customTargetInput" type="number" min="0" max="100000" class="text-input" placeholder="কাস্টম লক্ষ্য (0=অসীম)" />
+              <button id="saveTargetBtn" class="ctrl-btn" type="button" style="background: var(--primary); color: #fff; border-color: var(--primary);">সেট</button>
+            </div>
+            <div class="inline-form">
+              <input id="manualAddInput" type="number" min="1" max="100000" class="text-input" placeholder="হাতে গোনা সংখ্যা যোগ (যেমন: 33)" />
+              <button id="manualAddBtn" class="ctrl-btn" type="button" style="background: var(--gold); color: #152420; border-color: var(--gold); font-weight: 600;">+ যোগ</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span id="tasbihFormTitle">➕ নতুন তসবিহ যোগ করুন</span>
+              <button id="cancelEditTasbihBtn" class="ctrl-btn" style="display:none; padding:3px 8px; font-size:11px;" type="button">বাতিল</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; gap:6px;">
+                <input id="newTasbihName" type="text" class="text-input" placeholder="নাম (যেমন: ইয়া হাইয়্যু)" />
+                <input id="newTasbihTarget" type="number" min="0" class="num-input" placeholder="লক্ষ্য" value="100" />
+              </div>
+              <input id="newTasbihArabic" type="text" class="text-input" placeholder="আরবি (ঐচ্ছিক)" />
+              <input id="newTasbihMeaning" type="text" class="text-input" placeholder="বাংলা উচ্চারণ / অর্থ (ঐচ্ছিক)" />
+              <button id="addCustomTasbihBtn" class="primary-btn" type="button">💾 তসবিহ সেভ করুন</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2.5: AMOL TRACKER (Chronological Flow + Reports) -->
+      <section id="tab-amol" class="tab-panel">
+        <!-- Date & Report Mode Selector -->
+        <div class="card" style="padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:13.5px; font-weight:700;">📅 তারিখ:</span>
+            <input type="date" id="amolDatePicker" class="time-input" style="flex:1;" />
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+            <button class="ctrl-btn report-mode-btn active-report" data-mode="daily" type="button" style="justify-content:center; padding:6px 4px; font-size:12px;">দৈনিক</button>
+            <button class="ctrl-btn report-mode-btn" data-mode="monthly" type="button" style="justify-content:center; padding:6px 4px; font-size:12px;">মাসিক</button>
+            <button class="ctrl-btn report-mode-btn" data-mode="yearly" type="button" style="justify-content:center; padding:6px 4px; font-size:12px;">বার্ষিক</button>
+            <button class="ctrl-btn report-mode-btn" data-mode="custom" type="button" style="justify-content:center; padding:6px 4px; font-size:12px;">কাস্টম</button>
+          </div>
+          <div id="customRangeRow" style="display:none; gap:6px; align-items:center; margin-top:8px;">
+            <input type="date" id="reportFromDate" class="time-input" style="flex:1; font-size:12px;" />
+            <span style="font-size:11px;">থেকে</span>
+            <input type="date" id="reportToDate" class="time-input" style="flex:1; font-size:12px;" />
           </div>
         </div>
 
-        <!-- Daily / Monthly / Yearly Summary -->
+        <!-- Report Summary Card -->
         <div class="card">
           <div class="card-title">
-            <span>📊 তসবিহ সামারি</span>
+            <span id="reportSummaryTitle">📊 আজকের রিপোর্ট</span>
+            <span id="namazTrackerBadge" class="card-badge">আদায়: ০/৫ | কাজা: ০</span>
+          </div>
+          <div id="reportStatsGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center;">
+            <div style="background:var(--primary-light); padding:10px 6px; border-radius:12px;">
+              <div id="repNamazDone" style="font-size:18px; font-weight:700; color:var(--primary);">০</div>
+              <div style="font-size:11px; color:var(--text-muted);">আদায় নামাজ</div>
+            </div>
+            <div style="background:var(--danger-soft); padding:10px 6px; border-radius:12px;">
+              <div id="repNamazQaza" style="font-size:18px; font-weight:700; color:var(--danger);">০</div>
+              <div style="font-size:11px; color:var(--text-muted);">কাজা নামাজ</div>
+            </div>
+            <div style="background:var(--gold-soft); padding:10px 6px; border-radius:12px;">
+              <div id="repAmalPct" style="font-size:18px; font-weight:700; color:var(--gold);">০%</div>
+              <div style="font-size:11px; color:var(--text-muted);">দৈনিক আমল</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chronological Daily Flow (Fajr -> Dhuhr -> Asr -> Maghrib -> Isha) -->
+        <div class="card">
+          <div class="card-title">
+            <span>🕌 দৈনিক নামাজ ও আমল ফ্লো</span>
+            <span style="font-size:11px; color:var(--text-muted);">⬜ বাকি | ✅ আদায় | ⚠️ কাজা</span>
+          </div>
+          <div id="chronologicalAmolFlow"></div>
+        </div>
+
+        <!-- Tasbih Summary inside Amol Tracker -->
+        <div class="card">
+          <div class="card-title">
+            <span>📿 তসবিহ সামারি</span>
             <span id="totalAllToday" class="card-badge">আজ: ০</span>
           </div>
           <table class="summary-table">
@@ -171,6 +250,13 @@
       <section id="tab-namaz" class="tab-panel">
         <div class="card">
           <div class="card-title">
+            <span>🛡️ সাইয়্যিদুল ইস্তিগফার ও আয়াতুল কুরসী</span>
+          </div>
+          <div id="dailyAzkarAccordion"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
             <span>🕌 অর্থপূর্ণ নামাজ ও সালাতুর রাসূল (ﷺ)</span>
           </div>
           <div id="namazAccordion"></div>
@@ -179,7 +265,9 @@
         <div class="card">
           <div class="card-title">
             <span>🌙 নফল রোজা ও বিশেষ ইবাদত</span>
+            <span id="ayyamDatesBadge" class="card-badge">আইয়ামে বীজ</span>
           </div>
+          <div id="ayyamInfoBox" style="font-size:12.5px; color:var(--primary); font-weight:600; margin-bottom:10px;"></div>
           <div id="nafalAccordion"></div>
         </div>
       </section>
@@ -331,9 +419,9 @@
     <nav class="bottom-nav">
       <button class="nav-item active" data-tab="home" type="button"><span class="nav-icon">🕌</span><span>হোম</span></button>
       <button class="nav-item" data-tab="tasbih" type="button"><span class="nav-icon">📿</span><span>তসবিহ</span></button>
+      <button class="nav-item" data-tab="amol" type="button"><span class="nav-icon">📊</span><span>আমল</span></button>
       <button class="nav-item" data-tab="namaz" type="button"><span class="nav-icon">📖</span><span>নামাজ</span></button>
       <button class="nav-item" data-tab="reminders" type="button"><span class="nav-icon">🔔</span><span>রিমাইন্ডার</span></button>
-      <button class="nav-item" data-tab="settings" type="button"><span class="nav-icon">⚙️</span><span>সেটিংস</span></button>
     </nav>
   </div>
 

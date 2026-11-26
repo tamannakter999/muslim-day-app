@@ -6,8 +6,7 @@
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_muslim_day",
-      "iconColor": "#0d6e5b",
-      "sound": "durood_reminder.mp3"
+      "iconColor": "#0d6e5b"
     }
   }
 }
