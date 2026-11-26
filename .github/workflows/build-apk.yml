@@ -25,7 +25,7 @@ jobs:
       - name: Prepare Web Assets (www)
         run: |
           mkdir -p www/audio
-          cp -f index.html styles.css app.js prayer-times.js manifest.json sw.js icon.svg www/ 2>/dev/null || true
+          cp -f index.html styles.css app.js prayer-times.js namaz-data.js manifest.json sw.js icon.png www/ 2>/dev/null || true
           cp -f audio/*.mp3 www/audio/ 2>/dev/null || true
           node -e '
             const fs = require("fs");
@@ -38,8 +38,18 @@ jobs:
         run: |
           npm install
           npx cap add android
-          mkdir -p android/app/src/main/res/raw
+          mkdir -p android/app/src/main/res/raw android/app/src/main/res/drawable
           cp -f audio/*.mp3 android/app/src/main/res/raw/ 2>/dev/null || true
+          if [ -f icon.png ]; then
+            cp -f icon.png android/app/src/main/res/drawable/ic_stat_muslim_day.png
+            for dir in android/app/src/main/res/mipmap-*; do
+              if [ -d "$dir" ]; then
+                cp -f icon.png "$dir/ic_launcher.png"
+                cp -f icon.png "$dir/ic_launcher_round.png"
+                cp -f icon.png "$dir/ic_launcher_foreground.png"
+              fi
+            done
+          fi
           npx cap sync android
 
       - name: Build Debug APK
