@@ -1,0 +1,18 @@
+{
+  "name": "Muslim Day — নামাজ, সাহরী-ইফতার ও তসবিহ",
+  "short_name": "Muslim Day",
+  "description": "অফলাইন নামাজের সময়সূচী, সাহরী-ইফতার, তসবিহ এবং বাংলা ভয়েস দরূদ ও ইস্তেগফার রিমাইন্ডার",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#084d40",
+  "theme_color": "#0d6e5b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

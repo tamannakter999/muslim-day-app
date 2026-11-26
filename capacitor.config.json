@@ -1,0 +1,13 @@
+{
+  "appId": "com.muslimday.bd.app",
+  "appName": "Muslim Day",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#0d6e5b",
+      "sound": "durood_reminder.mp3"
+    }
+  }
+}

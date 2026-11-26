@@ -1,0 +1,19 @@
+{
+  "name": "muslim-day-android",
+  "version": "1.0.0",
+  "description": "Muslim Day Offline Android App — Prayer Times, Sehri/Iftar, Tasbih & Bangla Voice Reminders",
+  "scripts": {
+    "android:init": "npx cap add android && mkdir -p android/app/src/main/res/raw && cp audio/durood_reminder.mp3 audio/istighfar_reminder.mp3 android/app/src/main/res/raw/",
+    "android:sync": "mkdir -p android/app/src/main/res/raw && cp audio/durood_reminder.mp3 audio/istighfar_reminder.mp3 android/app/src/main/res/raw/ && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/geolocation": "^6.0.1",
+    "@capacitor/local-notifications": "^6.1.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
