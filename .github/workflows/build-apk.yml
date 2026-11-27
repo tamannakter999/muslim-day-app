@@ -25,7 +25,7 @@ jobs:
       - name: Prepare Web Assets (www)
         run: |
           mkdir -p www/audio
-          cp -f index.html styles.css app.js prayer-times.js namaz-data.js manifest.json sw.js icon.png www/ 2>/dev/null || true
+          cp -f index.html styles.css app.js prayer-times.js namaz-data.js asmaul-husna.js manifest.json sw.js icon.png www/ 2>/dev/null || true
           cp -f audio/*.mp3 www/audio/ 2>/dev/null || true
           node -e '
             const fs = require("fs");
@@ -50,6 +50,23 @@ jobs:
               fi
             done
           fi
+          node -e '
+            const fs = require("fs");
+            const p = "android/app/src/main/AndroidManifest.xml";
+            let xml = fs.readFileSync(p, "utf8");
+            const perms = [
+              "android.permission.POST_NOTIFICATIONS",
+              "android.permission.SCHEDULE_EXACT_ALARM",
+              "android.permission.USE_EXACT_ALARM",
+              "android.permission.WAKE_LOCK"
+            ];
+            let inject = "";
+            perms.forEach(perm => {
+              if (!xml.includes(perm)) inject += `    <uses-permission android:name="${perm}" />\n`;
+            });
+            xml = xml.replace("<application", inject + "    <application");
+            fs.writeFileSync(p, xml);
+          '
           npx cap sync android
 
       - name: Build Debug APK
