@@ -248,6 +248,18 @@
 
       <!-- TAB 3: NAMAZ & AMAL -->
       <section id="tab-namaz" class="tab-panel">
+        <!-- 99 Names of Allah (Asmaul Husna) -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0; cursor:pointer;" id="toggleAsmaulBtn">
+            <span>✨ আল্লাহর ৯৯টি নাম ও ফযিলত</span>
+            <span class="card-badge">দেখুন ▾</span>
+          </div>
+          <div id="asmaulContainer" style="display:none; margin-top:10px;">
+            <div id="asmaulFazilat" style="font-size:12.5px; color:var(--primary); background:var(--primary-light); padding:10px; border-radius:10px; margin-bottom:10px; line-height:1.5;"></div>
+            <div id="asmaulList"></div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-title">
             <span>🛡️ সাইয়্যিদুল ইস্তিগফার ও আয়াতুল কুরসী</span>
@@ -343,6 +355,17 @@
             <input type="time" id="quiet2End" class="time-input" value="17:00" style="flex:1;" />
           </div>
 
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>📳 রিমাইন্ডার ভাইব্রেশন</h4>
+              <p>নোটিফিকেশনের সাথে ফোন ভাইব্রেট করবে</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="vibrateToggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
           <button id="saveRemindersBtn" class="primary-btn" type="button">💾 রিমাইন্ডার সেভ করুন</button>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
@@ -427,6 +450,7 @@
 
   <script src="prayer-times.js"></script>
   <script src="namaz-data.js"></script>
+  <script src="asmaul-husna.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

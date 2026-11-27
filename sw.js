@@ -5,6 +5,7 @@ const ASSETS = [
   './styles.css',
   './prayer-times.js',
   './namaz-data.js',
+  './asmaul-husna.js',
   './app.js',
   './manifest.json',
   './icon.png',

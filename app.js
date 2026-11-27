@@ -57,7 +57,8 @@
     quiet1End: saved.quiet1End || '07:00',
     quiet2On: !!saved.quiet2On,
     quiet2Start: saved.quiet2Start || '10:00',
-    quiet2End: saved.quiet2End || '17:00'
+    quiet2End: saved.quiet2End || '17:00',
+    reminderVibrate: saved.reminderVibrate !== undefined ? !!saved.reminderVibrate : true
   };
 
   let savePending = false;
@@ -130,6 +131,7 @@
     const body = isDurood ? 'দুরুদ পড়ুন' : 'নিজের পাপের জন্য ক্ষমা চান';
 
     showToast(title, body);
+    if (state.reminderVibrate && navigator.vibrate) navigator.vibrate([180, 80, 180]);
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body, icon: './icon.png' });
     }
@@ -629,6 +631,30 @@
     document.querySelectorAll('.acc-header').forEach(btn => {
       btn.addEventListener('click', () => btn.parentElement.classList.toggle('open'));
     });
+
+    // Lazy-render 99 Names of Allah on click (keeps app startup instant!)
+    let asmaulRendered = false;
+    document.getElementById('toggleAsmaulBtn').addEventListener('click', () => {
+      const box = document.getElementById('asmaulContainer');
+      const isHidden = box.style.display === 'none';
+      box.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && !asmaulRendered && window.ASMAUL_HUSNA) {
+        asmaulRendered = true;
+        document.getElementById('asmaulFazilat').textContent = window.ASMAUL_HUSNA.fazilat;
+        document.getElementById('asmaulList').innerHTML = window.ASMAUL_HUSNA.names.map((item, i) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid var(--border); gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:28px; height:28px; border-radius:50%; background:var(--primary-light); color:var(--primary); display:grid; place-items:center; font-size:12px; font-weight:700; flex-shrink:0;">${fmtNum(i + 1)}</span>
+              <div>
+                <div style="font-size:14px; font-weight:600;">${item[0]}</div>
+                <div style="font-size:11.5px; color:var(--text-muted);">${item[2]}</div>
+              </div>
+            </div>
+            <div style="font-size:19px; font-weight:700; color:var(--primary); direction:rtl;">${item[1]}</div>
+          </div>
+        `).join('');
+      }
+    });
   }
 
   // ==================== REMINDERS (FIXED SEPARATE CHANNELS + AYYAM AL-BEED) ====================
@@ -658,30 +684,37 @@
       const perm = await LN.requestPermissions();
       if (perm.display !== 'granted') return;
 
-      // Fresh v4 channels so Android NEVER uses cached old channel sounds!
-      await LN.createChannel({ id: 'durood_ch_v4', name: 'দুরুদ রিমাইন্ডার', sound: 'durood_reminder.mp3', importance: 5, visibility: 1 });
-      await LN.createChannel({ id: 'istighfar_ch_v4', name: 'ইস্তেগফার রিমাইন্ডার', sound: 'istighfar_reminder.mp3', importance: 5, visibility: 1 });
-      await LN.createChannel({ id: 'ayyam_ch_v4', name: 'আইয়ামে বীজ রিমাইন্ডার', importance: 4, visibility: 1 });
+      // Separate channels for Vibration ON vs OFF so toggle works cleanly on Android!
+      const vib = !!state.reminderVibrate;
+      const dChan = vib ? 'durood_vib_v6' : 'durood_novib_v6';
+      const iChan = vib ? 'istighfar_vib_v6' : 'istighfar_novib_v6';
+
+      await LN.createChannel({ id: dChan, name: vib ? 'দুরুদ (ভয়েস+ভাইব্রেশন)' : 'দুরুদ (শুধু ভয়েস)', sound: 'durood_reminder.mp3', importance: 5, visibility: 1, vibration: vib });
+      await LN.createChannel({ id: iChan, name: vib ? 'ইস্তেগফার (ভয়েস+ভাইব্রেশন)' : 'ইস্তেগফার (শুধু ভয়েস)', sound: 'istighfar_reminder.mp3', importance: 5, visibility: 1, vibration: vib });
+      await LN.createChannel({ id: 'ayyam_ch_v5', name: 'আইয়ামে বীজ রিমাইন্ডার', importance: 4, visibility: 1, vibration: vib });
 
       const pending = await LN.getPending();
       if (pending?.notifications?.length) {
         await LN.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
       }
+      await LN.removeAllDeliveredNotifications().catch(() => {});
 
       const list = [];
-      let nextId = 300;
+      let nextId = 500;
       const nowMs = Date.now();
-      const horizonMs = nowMs + 12 * 3600 * 1000;
+      // Keep max 8 upcoming reminders per type so Android NEVER floods old stacked notifications
+      const maxPerType = 8;
       const duroodTimes = [];
 
       if (state.duroodOn && state.duroodMin >= 1) {
-        for (let t = nowMs + state.duroodMin * 60000; t <= horizonMs && duroodTimes.length < 22; t += state.duroodMin * 60000) {
+        for (let i = 1; i <= maxPerType; i++) {
+          const t = nowMs + i * state.duroodMin * 60000;
           const dt = new Date(t);
           if (!isQuietNow(dt)) {
             duroodTimes.push(t);
             list.push({
               id: nextId++, title: '🕌 দুরুদ শরীফ রিমাইন্ডার', body: 'দুরুদ পড়ুন',
-              channelId: 'durood_ch_v4', sound: 'durood_reminder.mp3',
+              channelId: dChan, sound: 'durood_reminder.mp3',
               schedule: { at: dt, allowWhileIdle: true }
             });
           }
@@ -689,17 +722,14 @@
       }
 
       if (state.istighfarOn && state.istighfarMin >= 1) {
-        let count = 0;
-        for (let t = nowMs + state.istighfarMin * 60000; t <= horizonMs && count < 22; t += state.istighfarMin * 60000) {
-          // If Istighfar falls within 15s of any Durood time, shift +18s so #1 finishes then #2 speaks!
-          let adjusted = t;
-          if (duroodTimes.some(dt => Math.abs(dt - adjusted) < 15000)) adjusted += 18000;
-          const dt = new Date(adjusted);
+        for (let i = 1; i <= maxPerType; i++) {
+          let t = nowMs + i * state.istighfarMin * 60000;
+          if (duroodTimes.some(dt => Math.abs(dt - t) < 35000)) t += 35000;
+          const dt = new Date(t);
           if (!isQuietNow(dt)) {
-            count++;
             list.push({
               id: nextId++, title: '🤲 ইস্তেগফার রিমাইন্ডার', body: 'নিজের পাপের জন্য ক্ষমা চান',
-              channelId: 'istighfar_ch_v4', sound: 'istighfar_reminder.mp3',
+              channelId: iChan, sound: 'istighfar_reminder.mp3',
               schedule: { at: dt, allowWhileIdle: true }
             });
           }
@@ -760,6 +790,7 @@
     document.getElementById('quiet2Toggle').checked = state.quiet2On;
     document.getElementById('quiet2Start').value = state.quiet2Start;
     document.getElementById('quiet2End').value = state.quiet2End;
+    document.getElementById('vibrateToggle').checked = state.reminderVibrate;
 
     document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
     document.getElementById('locationBtn').addEventListener('click', () => switchTab('settings'));
@@ -921,6 +952,7 @@
       state.quiet2On = document.getElementById('quiet2Toggle').checked;
       state.quiet2Start = document.getElementById('quiet2Start').value;
       state.quiet2End = document.getElementById('quiet2End').value;
+      state.reminderVibrate = document.getElementById('vibrateToggle').checked;
       saveState(); scheduleReminders();
       showToast('✅ রিমাইন্ডার সেভ হয়েছে', `দুরুদ: ${fmtNum(state.duroodMin)} মি. | ইস্তেগফার: ${fmtNum(state.istighfarMin)} মি.`);
     });
